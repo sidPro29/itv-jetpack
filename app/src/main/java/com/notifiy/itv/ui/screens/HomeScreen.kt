@@ -2,7 +2,6 @@ package com.notifiy.itv.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -13,9 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.tv.foundation.PivotOffsets
+import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.notifiy.itv.data.model.Post
+import com.notifiy.itv.ui.components.ImmersiveList
 import com.notifiy.itv.ui.components.MovieCard
 import com.notifiy.itv.ui.theme.Background
 import com.notifiy.itv.ui.viewmodel.HomeViewModel
@@ -37,15 +39,22 @@ fun HomeScreen(
             Text("Loading...", color = Color.White)
         }
     } else {
-        LazyColumn(
+        TvLazyColumn(
             modifier = modifier
                 .fillMaxSize()
                 .background(Background),
-            contentPadding = PaddingValues(top = 20.dp, bottom = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+            contentPadding = PaddingValues(top = 0.dp, bottom = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp),
+            pivotOffsets = PivotOffsets(parentFraction = 0.6f, childFraction = 0f)
         ) {
             if (state.liveTv.isNotEmpty()) {
-                item { Section(title = "LiveTV", items = state.liveTv, onClick = onMovieClick) }
+                item { 
+                    ImmersiveList(
+                        title = "LiveTV", 
+                        items = state.liveTv, 
+                        onItemClick = onMovieClick
+                    ) 
+                }
             }
             if (state.top10.isNotEmpty()) {
                 item { Section(title = "Our Top 10", items = state.top10, onClick = onMovieClick) }
