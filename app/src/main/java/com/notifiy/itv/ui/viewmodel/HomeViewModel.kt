@@ -38,7 +38,7 @@ class HomeViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     // ID Lists
-    private val liveTvIds = setOf(29897, 29900, 29903, 29919, 29925, 29929, 29932, 29935, 29938)
+    private val liveTvIds = setOf(25524, 29897, 29900, 29903, 29919, 29925, 29929, 29932, 29935, 29938)
     private val top10Ids = setOf(29866, 24409, 24245, 24063, 23931, 23927, 23919, 23903, 23899)
     private val bingeVideoIds = setOf(24062, 24030, 23976, 23954, 23947, 23946, 23935, 23933, 23927, 23913, 23874, 23861, 23895)
     private val sciFiUniverseIds = setOf(30305, 24208, 24181, 24163, 24159, 24158, 24157, 24062, 24063, 24060, 23874)

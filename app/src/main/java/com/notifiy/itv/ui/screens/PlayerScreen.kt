@@ -1,5 +1,9 @@
 package com.notifiy.itv.ui.screens
 
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
@@ -27,7 +31,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.Surface
 import com.notifiy.itv.R
+import com.notifiy.itv.ui.theme.Surface
+
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -50,40 +58,88 @@ fun PlayerScreen(
         return
     }
 
+    val isYouTube = videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")
     val context = LocalContext.current
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
-            playWhenReady = true
-        }
-    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Extract Video ID
+    // Supports: /embed/, v=, /v/, youtu.be/
+    val videoId = if (isYouTube) {
+        Regex("(?:v=|/embed/|youtu\\.be/|/v/)([^#&?]+)").find(videoUrl)?.groupValues?.get(1)
+    } else null
+    
+    // Fallback logic if Youtube but ID extraction fails (should rarely happen)
+    // If extraction fails, we can't use the library easily, so we might need fallback.
+    // For now assuming ID is found for valid links.
 
-    DisposableEffect(Unit) {
-        onDispose {
-            exoPlayer.release()
-        }
-    }
-
-    LaunchedEffect(videoUrl) {
-        val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-    }
+    android.util.Log.d("PlayerScreen", "Original URL: $videoUrl")
+    android.util.Log.d("PlayerScreen", "Extracted Video ID: $videoId")
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        AndroidView(
-            factory = {
-                PlayerView(it).apply {
-                    player = exoPlayer
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    useController = true
+        if (isYouTube && videoId != null) {
+            // YouTube Player Library
+            AndroidView(
+                factory = { ctx ->
+                    YouTubePlayerView(ctx).apply {
+                        lifecycleOwner.lifecycle.addObserver(this)
+                        enableAutomaticInitialization = false
+                        
+                        val listener = object : AbstractYouTubePlayerListener() {
+                            override fun onReady(youTubePlayer: YouTubePlayer) {
+                                youTubePlayer.loadVideo(videoId, 0f)
+                            }
+                        }
+                        
+                        val options = IFramePlayerOptions.Builder()
+                            .controls(1)
+                            .rel(0)
+                            .origin("https://interplanetary.tv")
+                            //.ivLoadPolicy(3)
+                            //.ccLoadPolicy(1)
+                            .build()
+                            
+                        initialize(listener, options)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+//                modifier = Modifier.fillMaxSize()
+//            )
+        } else {
+            // Standard ExoPlayer (or fallback for non-ID youtube links)
+            val exoPlayer = remember {
+                ExoPlayer.Builder(context).build().apply {
+                    playWhenReady = true
                 }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+            }
+
+            DisposableEffect(Unit) {
+                onDispose {
+                    exoPlayer.release()
+                }
+            }
+
+            LaunchedEffect(videoUrl) {
+                val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+            }
+
+            AndroidView(
+                factory = {
+                    PlayerView(it).apply {
+                        player = exoPlayer
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        useController = true
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         AsyncImage(
             model = R.drawable.logo,
