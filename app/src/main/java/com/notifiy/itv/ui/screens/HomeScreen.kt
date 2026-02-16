@@ -42,23 +42,43 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(Background),
             contentPadding = PaddingValues(start = 35.dp, top = 20.dp, bottom = 30.dp),
-            // Check margin
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            if (state.videos.isNotEmpty()) {
-                item {
-                    Section(title = "Featured Videos", items = state.videos, onClick = onMovieClick)
-                }
+            if (state.liveTv.isNotEmpty()) {
+                item { Section(title = "LiveTV", items = state.liveTv, onClick = onMovieClick) }
             }
-            if (state.movies.isNotEmpty()) {
-                item {
-                    Section(title = "Movies", items = state.movies, onClick = onMovieClick)
-                }
+            if (state.top10.isNotEmpty()) {
+                item { Section(title = "Our Top 10", items = state.top10, onClick = onMovieClick) }
             }
-            if (state.tvShows.isNotEmpty()) {
-                item {
-                    Section(title = "TV Shows", items = state.tvShows, onClick = onMovieClick)
-                }
+            if (state.bingeVideos.isNotEmpty()) {
+                item { Section(title = "Binge Videos", items = state.bingeVideos, onClick = onMovieClick) }
+            }
+            if (state.bingeEpicSeries.isNotEmpty()) {
+                item { Section(title = "Binge- Epic series", items = state.bingeEpicSeries, onClick = onMovieClick) }
+            }
+            if (state.mustWatchSpaceEpic.isNotEmpty()) {
+                item { Section(title = "Must-watch space epic", items = state.mustWatchSpaceEpic, onClick = onMovieClick) }
+            }
+            if (state.spaceToGround.isNotEmpty()) {
+                item { Section(title = "space-to-ground Report", items = state.spaceToGround, onClick = onMovieClick) }
+            }
+            if (state.sciFiUniverse.isNotEmpty()) {
+                item { Section(title = "The sci-fi universe", items = state.sciFiUniverse, onClick = onMovieClick) }
+            }
+            if (state.news.isNotEmpty()) {
+                item { Section(title = "News", items = state.news, onClick = onMovieClick) }
+            }
+            if (state.talkShows.isNotEmpty()) {
+                item { Section(title = "Talk show", items = state.talkShows, onClick = onMovieClick) }
+            }
+            if (state.documentarySeries.isNotEmpty()) {
+                item { Section(title = "Doccumentry series", items = state.documentarySeries, onClick = onMovieClick) }
+            }
+            if (state.documentaryFilms.isNotEmpty()) {
+                item { Section(title = "Documentry Film", items = state.documentaryFilms, onClick = onMovieClick) }
+            }
+            if (state.scienceFiction.isNotEmpty()) {
+                item { Section(title = "Science Fiction", items = state.scienceFiction, onClick = onMovieClick) }
             }
         }
     }

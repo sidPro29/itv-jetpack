@@ -123,11 +123,72 @@ fun AppNavigation() {
                 composable("Advertise") { PlaceholderScreen("Advertise") }
                 
                 // Dropdown items
-                composable("News") { PlaceholderScreen("News") }
-                composable("Videos") { PlaceholderScreen("All Videos") }
-                composable("Documentary Films") { PlaceholderScreen("Documentary Films") }
-                composable("Documentary Series") { PlaceholderScreen("Documentary Series") }
-                composable("Science-Fiction") { PlaceholderScreen("Science-Fiction") }
+                // Dropdown items
+                composable("News") { 
+                    CatalogScreen(
+                        title = "News", 
+                        type = "News",
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    ) 
+                }
+                composable("Videos") { 
+                    CatalogScreen(
+                        title = "Videos", 
+                        type = "Videos",
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    ) 
+                }
+                composable("Documentary Films") { 
+                    CatalogScreen(
+                        title = "Documentary Films", 
+                        type = "Documentary Films",
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    ) 
+                }
+                composable("Documentary Series") { 
+                    CatalogScreen(
+                        title = "Documentary Series", 
+                        type = "Documentary Series",
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    ) 
+                }
+                composable("Science-Fiction") { 
+                    CatalogScreen(
+                        title = "Science-Fiction", 
+                        type = "Science-Fiction",
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    ) 
+                }
 
                 composable("Search") { 
                     SearchScreen(
