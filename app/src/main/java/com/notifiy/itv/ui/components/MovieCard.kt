@@ -23,7 +23,9 @@ import com.notifiy.itv.data.model.Post
 fun MovieCard(
     post: Post,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    width: androidx.compose.ui.unit.Dp = 150.dp,
+    aspectRatio: Float = 0.8f // Default 4:5
 ) {
     val imageUrl = post.portraitImage?.medium?.takeIf { it.isNotEmpty() }
         ?: post.portraitPoster?.takeIf { it.isNotEmpty() }
@@ -43,35 +45,18 @@ fun MovieCard(
             focusedBorder = Border(BorderStroke(3.dp, Color.LightGray))
         ),
         modifier = modifier
-            .width(150.dp) // Adjusted for TV
-            .aspectRatio(2f/3f)
+            .width(width)
+            .aspectRatio(aspectRatio)
             .padding(8.dp)
     ) {
-        Column {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(imageUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = post.title.rendered,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
-            
-            Text(
-                text = post.title.rendered,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    textAlign = TextAlign.Center
-                ),
-                maxLines = 2,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp)
-            )
-        }
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = post.title.rendered,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }

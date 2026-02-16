@@ -41,7 +41,7 @@ fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(Background),
-            contentPadding = PaddingValues(start = 35.dp, top = 20.dp, bottom = 30.dp),
+            contentPadding = PaddingValues(top = 20.dp, bottom = 30.dp),
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
             if (state.liveTv.isNotEmpty()) {
@@ -95,16 +95,22 @@ fun Section(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
+            modifier = Modifier.padding(start = 35.dp),
             text = title,
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(end = 58.dp)
+            contentPadding = PaddingValues(end = 50.dp, start = 25.dp)
         ) {
             items(items) { post ->
-                MovieCard(post = post, onClick = { onClick(post) })
+                MovieCard(
+                    post = post, 
+                    onClick = { onClick(post) },
+                    width = 250.dp,
+                    aspectRatio = 16f / 9f
+                )
             }
         }
     }

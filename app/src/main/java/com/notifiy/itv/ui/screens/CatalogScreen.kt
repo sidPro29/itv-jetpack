@@ -60,7 +60,7 @@ fun CatalogScreen(
             }
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
+                columns = GridCells.Fixed(4), // Reduced columns to allow wider cards
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 20.dp),
@@ -77,7 +77,9 @@ fun CatalogScreen(
                 items(state.items) { post ->
                     MovieCard(
                         post = post,
-                        onClick = { onMovieClick(post) }
+                        onClick = { onMovieClick(post) },
+                        width = 210.dp, // Increased width
+                        aspectRatio = 0.8f // 4:5 ratio
                     )
                 }
             }
