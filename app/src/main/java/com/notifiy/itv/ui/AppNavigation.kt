@@ -25,6 +25,7 @@ import com.notifiy.itv.ui.screens.DetailsScreen
 import com.notifiy.itv.ui.screens.HomeScreen
 import com.notifiy.itv.ui.screens.PlaceholderScreen
 import com.notifiy.itv.ui.screens.PlayerScreen
+import com.notifiy.itv.ui.screens.SearchScreen
 import com.notifiy.itv.ui.theme.Background
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -128,7 +129,18 @@ fun AppNavigation() {
                 composable("Documentary Series") { PlaceholderScreen("Documentary Series") }
                 composable("Science-Fiction") { PlaceholderScreen("Science-Fiction") }
 
-                composable("Search") { PlaceholderScreen("Search") }
+                composable("Search") { 
+                    SearchScreen(
+                        onMovieClick = { post ->
+                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
+                            val videoUrl = post.videoUrl ?: ""
+                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
+                            
+                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                        }
+                    )
+                }
                 composable("Login") { PlaceholderScreen("Login") }
 
                 // Details
