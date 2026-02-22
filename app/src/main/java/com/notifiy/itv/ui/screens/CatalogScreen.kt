@@ -66,7 +66,7 @@ fun CatalogScreen(
                 contentPadding = PaddingValues(bottom = 20.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                item(span = { GridItemSpan(5) }) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineMedium,

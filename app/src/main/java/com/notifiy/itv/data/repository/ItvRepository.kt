@@ -72,6 +72,17 @@ class ItvRepository @Inject constructor(
         return response
     }
 
+    suspend fun clearCache() {
+        cachedVideos = null
+        cachedMovies = null
+        cachedTvShows = null
+        withContext(Dispatchers.IO) {
+            File(context.filesDir, "videos.json").delete()
+            File(context.filesDir, "movies.json").delete()
+            File(context.filesDir, "tvshows.json").delete()
+        }
+    }
+
     // Helper functions for safe property access
     private fun internalCachedVideos() = cachedVideos
     private fun internalCachedMovies() = cachedMovies

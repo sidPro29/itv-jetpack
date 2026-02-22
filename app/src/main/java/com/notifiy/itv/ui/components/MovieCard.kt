@@ -27,10 +27,7 @@ fun MovieCard(
     width: androidx.compose.ui.unit.Dp = 150.dp,
     aspectRatio: Float = 0.8f // Default 4:5
 ) {
-    val imageUrl = post.portraitImage?.medium?.takeIf { it.isNotEmpty() }
-        ?: post.portraitPoster?.takeIf { it.isNotEmpty() }
-        ?: post._embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-        ?: ""
+    val imageUrl = post.getDisplayImageUrl()
 
     Surface(
         onClick = onClick,

@@ -15,13 +15,27 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.notifiy.itv.ui.viewmodel.DetailsViewModel
+
 @Composable
 fun DetailsScreen(
+    id: Int,
     title: String,
     imageUrl: String?,
     isVideoAvailable: Boolean = true,
+    viewModel: DetailsViewModel = hiltViewModel(),
     onPlayClick: () -> Unit
 ) {
+    val isInWatchlist by viewModel.isInWatchlist.collectAsState()
+
+    LaunchedEffect(id) {
+        viewModel.checkWatchlistStatus(id)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Background Image
         AsyncImage(
@@ -50,12 +64,24 @@ fun DetailsScreen(
                 color = Color.White
             )
             Spacer(modifier = Modifier.height(20.dp))
-            if (isVideoAvailable) {
-                Button(onClick = onPlayClick) {
-                    Text("Play Video")
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isVideoAvailable) {
+                    Button(onClick = onPlayClick) {
+                        Text("Play Video")
+                    }
+                } else {
+                    Text("No video available", color = Color.Gray)
                 }
-            } else {
-                Text("No video available", color = Color.Gray)
+
+                Button(
+                    onClick = { viewModel.toggleWatchlist(id) }
+                ) {
+                    Text(if (isInWatchlist) "Remove from Watchlist" else "Add to Watchlist")
+                }
             }
         }
     }

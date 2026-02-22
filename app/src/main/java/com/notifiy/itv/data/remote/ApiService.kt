@@ -22,4 +22,9 @@ interface ApiService {
         @Query("page") page: Int = 1,
         @Query("per_page") perPage: Int = 100
     ): List<Post>
+
+    @retrofit2.http.POST("jwt-auth/v1/token")
+    suspend fun login(
+        @retrofit2.http.Body request: com.notifiy.itv.data.model.LoginRequest
+    ): com.notifiy.itv.data.model.LoginResponse
 }

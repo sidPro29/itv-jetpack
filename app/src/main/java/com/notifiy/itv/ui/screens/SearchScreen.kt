@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.*
@@ -214,12 +213,12 @@ fun SearchCard(
         ),
         modifier = Modifier.width(200.dp)
     ) {
-        Column {
+//        Column {
             // Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f) // Square aspect ratio
+                    .aspectRatio(4/5f)
                     .background(Color.DarkGray, RoundedCornerShape(8.dp))
             ) {
                 AsyncImage(
@@ -233,38 +232,20 @@ fun SearchCard(
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+//            Spacer(modifier = Modifier.height(8.dp))
             
-            // Title and Plus Button
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                 Text(
-                    text = post.title.rendered,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                // Plus Button
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(Color(0xFF40E0D0), RoundedCornerShape(4.dp)), // Cyan color
-                    contentAlignment = Alignment.Center
-                ) {
-                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add",
-                        tint = Color.Black,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-        }
+            // Title
+//            Box(
+//                modifier = Modifier.fillMaxWidth().padding(4.dp),
+//                contentAlignment = Alignment.CenterStart
+//            ) {
+//                 Text(
+//                    text = post.title.rendered,
+//                    color = Color.White,
+//                    fontSize = 14.sp,
+//                    maxLines = 1
+//                )
+//            }
+//        }
     }
 }

@@ -19,7 +19,14 @@ data class Post(
     @SerializedName("portrait_image") val portraitImage: PortraitImage?,
     val subtitles: List<Subtitle>?,
     val _embedded: Embedded?
-)
+) {
+    fun getDisplayImageUrl(): String {
+        return portraitImage?.medium?.let { if (it.isNotEmpty()) it else null }
+            ?: portraitPoster?.let { if (it.isNotEmpty()) it else null }
+            ?: _embedded?.featuredMedia?.firstOrNull()?.sourceUrl
+            ?: ""
+    }
+}
 
 data class Rendered(
     val rendered: String

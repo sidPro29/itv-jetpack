@@ -69,7 +69,7 @@ class HomeViewModel @Inject constructor(
                 val tvShows = tvShowsDeferred.await()
 
                 // Processing Lists
-                val liveTv = videos.filter { it.id in liveTvIds }
+                val liveTv = videos.filter { it.id in liveTvIds }.reversed()
                 val top10 = videos.filter { it.id in top10Ids }
                 val bingeVideos = videos.filter { it.id in bingeVideoIds }
                 val sciFiUniverse = videos.filter { it.id in sciFiUniverseIds }

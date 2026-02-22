@@ -33,19 +33,24 @@ import java.nio.charset.StandardCharsets
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(
+    mainViewModel: com.notifiy.itv.ui.viewmodel.MainViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+) {
     val navController = rememberNavController()
     // var currentTab by remember { mutableStateOf("Home") } // Use currentRoute instead
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "Home"
     
+    val isLoggedIn by mainViewModel.isLoggedIn.collectAsState()
+    val refreshTrigger by mainViewModel.refreshTrigger.collectAsState()
+    
     val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
     var isDropdownOpen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            if (!currentRoute.startsWith("Player")) {
+            if (!currentRoute.startsWith("Player") && !currentRoute.startsWith("Details")) {
                 TopBar(
                     currentTab = currentRoute.substringBefore("/"), 
                     onTabSelected = { tab ->
@@ -56,8 +61,8 @@ fun AppNavigation() {
                         } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans" || tab == "Advertise") {
                            isDropdownOpen = false
                            navController.navigate(tab) {
-                               popUpTo("Home")
-                               launchSingleTop = true
+                                popUpTo("Home")
+                                launchSingleTop = true
                            }
                         } else if (tab == "All") {
                             // No-op, handled by onAllVideosClick
@@ -68,9 +73,11 @@ fun AppNavigation() {
                     },
                     onSearchClick = { navController.navigate("Search") },
                     onLoginClick = { navController.navigate("Login") },
+                    onLogoutClick = { mainViewModel.logout() },
                     onSubscribeClick = { navController.navigate("Plans") },
                     onAllVideosClick = { isDropdownOpen = !isDropdownOpen },
-                    isDropdownOpen = isDropdownOpen
+                    isDropdownOpen = isDropdownOpen,
+                    isLoggedIn = isLoggedIn
                 )
             }
 
@@ -80,14 +87,24 @@ fun AppNavigation() {
                 modifier = Modifier.weight(1f)
             ) {
                 composable("Home") {
+                    val homeViewModel: com.notifiy.itv.ui.viewmodel.HomeViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    
+                    // Refresh data when trigger changes
+                    LaunchedEffect(refreshTrigger) {
+                        if (refreshTrigger > 0) {
+                            homeViewModel.loadData()
+                        }
+                    }
+
                     HomeScreen(
+                        viewModel = homeViewModel,
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     )
                 }
@@ -96,12 +113,12 @@ fun AppNavigation() {
                         title = "TV Shows", 
                         type = "TV Shows",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -110,12 +127,12 @@ fun AppNavigation() {
                         title = "Movies", 
                         type = "Movies",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -129,11 +146,11 @@ fun AppNavigation() {
                         title = "News", 
                         type = "News",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -142,11 +159,11 @@ fun AppNavigation() {
                         title = "Videos", 
                         type = "Videos",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -155,11 +172,11 @@ fun AppNavigation() {
                         title = "Documentary Films", 
                         type = "Documentary Films",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -168,11 +185,11 @@ fun AppNavigation() {
                         title = "Documentary Series", 
                         type = "Documentary Series",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -181,11 +198,11 @@ fun AppNavigation() {
                         title = "Science-Fiction", 
                         type = "Science-Fiction",
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     ) 
                 }
@@ -193,21 +210,31 @@ fun AppNavigation() {
                 composable("Search") { 
                     SearchScreen(
                         onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.portraitImage?.medium ?: "", StandardCharsets.UTF_8.toString())
+                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
                             val videoUrl = post.videoUrl ?: ""
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
-                            navController.navigate("Details/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
+                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
                     )
                 }
-                composable("Login") { PlaceholderScreen("Login") }
+                composable("Login") { 
+                    com.notifiy.itv.ui.screens.LoginScreen(
+                        onLoginSuccess = {
+                            mainViewModel.updateLoginStatus()
+                            navController.navigate("Home") {
+                                popUpTo("Login") { inclusive = true }
+                            }
+                        }
+                    )
+                }
 
                 // Details
                 composable(
-                    route = "Details/{title}/{imageUrl}?videoUrl={videoUrl}",
+                    route = "Details/{id}/{title}/{imageUrl}?videoUrl={videoUrl}",
                     arguments = listOf(
+                        navArgument("id") { type = NavType.IntType },
                         navArgument("title") { type = NavType.StringType },
                         navArgument("imageUrl") { type = NavType.StringType },
                         navArgument("videoUrl") { 
@@ -216,11 +243,13 @@ fun AppNavigation() {
                         }
                     )
                 ) { backStackEntry ->
+                    val id = backStackEntry.arguments?.getInt("id") ?: 0
                     val title = backStackEntry.arguments?.getString("title") ?: ""
                     val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                     val videoUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
                     
                     DetailsScreen(
+                        id = id,
                         title = title,
                         imageUrl = imageUrl,
                         isVideoAvailable = videoUrl.isNotEmpty(),
