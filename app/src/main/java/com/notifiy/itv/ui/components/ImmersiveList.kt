@@ -65,7 +65,7 @@ fun ImmersiveList(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(400.dp) 
+            .height(400.dp)
     ) {
         // Background Image (Always present as fallback/underlay)
         val imageUrl = focusedItem?.let { post ->
@@ -91,9 +91,10 @@ fun ImmersiveList(
 
         // Background Video Player
         if (isVideoPlaying && focusedItem != null) {
-            val videoUrl = focusedItem?.videoUrl
-            if (!videoUrl.isNullOrEmpty()) {
-                Box(modifier = Modifier.fillMaxSize().alpha(0.6f)) {
+            val videoUrl = focusedItem?.getEffectiveVideoUrl() ?: ""
+            Log.i("siddharthaverma", "ImmersiveList: videoUrl = $videoUrl")
+            if (videoUrl.isNotEmpty()) {
+                Box(modifier = Modifier.fillMaxSize()) {
                      BackgroundVideoPlayer(videoUrl = videoUrl)
                 }
             }
@@ -167,9 +168,16 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
     val lifecycleOwner = LocalLifecycleOwner.current
     
     val isYouTube = videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")
+    val isWebPlayer = videoUrl.contains(".php") || videoUrl.contains("webvideocore")
+    
     val videoId = if (isYouTube) {
-        Regex("(?:v=|/embed/|youtu\\.be/|/v/)([^#&?]+)").find(videoUrl)?.groupValues?.get(1)
+        val trimmedUrl = videoUrl.trim()
+        Regex("(?:v=|/embed/|youtu\\.be/|/v/)([^#&? ]+)").find(trimmedUrl)?.groupValues?.get(1)
     } else null
+
+    if (videoId != null) {
+        Log.d("ImmersiveList", "Playing YouTube video ID: $videoId from URL: $videoUrl")
+    }
 
     if (isYouTube && videoId != null) {
         AndroidView(
@@ -180,12 +188,14 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                     
                     val listener = object : AbstractYouTubePlayerListener() {
                         override fun onReady(youTubePlayer: YouTubePlayer) {
+                            youTubePlayer.mute() // Mute background video
                             youTubePlayer.loadVideo(videoId, 0f)
                         }
                     }
                     val options = IFramePlayerOptions.Builder()
                         .controls(0) // Hide controls
                         .rel(0)
+                        .origin("https://interplanetary.tv") // Match PlayerScreen
                         .ivLoadPolicy(3) // Hide video annotations
                         .ccLoadPolicy(0) // Hide captions
                         .build()
@@ -194,13 +204,86 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
             },
             modifier = Modifier.fillMaxSize()
         )
+    } else if (isWebPlayer) {
+        // Use WebView for web-based players (like .php URLs)
+        AndroidView(
+            factory = { ctx ->
+                android.webkit.WebView(ctx).apply {
+                    val webView = this
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    
+                    // Enable third party cookies, often needed for embedded players
+                    android.webkit.CookieManager.getInstance().apply {
+                        setAcceptCookie(true)
+                        setAcceptThirdPartyCookies(webView, true)
+                    }
+
+                    settings.apply {
+                        javaScriptEnabled = true
+                        mediaPlaybackRequiresUserGesture = false
+                        domStorageEnabled = true
+                        useWideViewPort = true
+                        loadWithOverviewMode = true
+                        databaseEnabled = true
+                        allowContentAccess = true
+                        allowFileAccess = true
+                        
+                        // Desktop agent usually forces a more robust player
+                        userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        
+                        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    }
+                    
+                    webChromeClient = object : android.webkit.WebChromeClient() {
+                        override fun onConsoleMessage(message: android.webkit.ConsoleMessage?): Boolean {
+                            val msg = message?.message() ?: ""
+                            if (msg.contains("Error", ignoreCase = true)) {
+                                Log.e("WebViewPlayer", "JS Error: $msg at ${message?.sourceId()}:${message?.lineNumber()}")
+                            } else {
+                                Log.d("WebViewPlayer", "JS Console: $msg")
+                            }
+                            return true
+                        }
+                    }
+                    
+                    webViewClient = object : android.webkit.WebViewClient() {
+                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                            Log.d("WebViewPlayer", "Page finished: $url - Injected Play Commands via Wrapper")
+                        }
+
+                        override fun onReceivedSslError(view: android.webkit.WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
+                            handler?.proceed()
+                        }
+                    }
+                    
+                    val embedHtml = """
+                        <html>
+                        <body style="margin:0;padding:0;background:black;">
+                            <div style="position: relative; padding-bottom: 56.25%; height: 100vh; width: 100vw; overflow: hidden;">
+                                <iframe src="$videoUrl" 
+                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
+                                        title="Interplanetary.tv Live" 
+                                        allow="autoplay; fullscreen" 
+                                        allowfullscreen>
+                                </iframe>
+                            </div>
+                        </body>
+                        </html>
+                    """.trimIndent()
+                    
+                    Log.d("WebViewPlayer", "Loading HTML Embed for: $videoUrl")
+                    loadDataWithBaseURL("https://interplanetary.tv", embedHtml, "text/html", "UTF-8", null)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     } else {
-        // ExoPlayer
+        // ExoPlayer for direct streams
         val exoPlayer = remember {
             ExoPlayer.Builder(context).build().apply {
-                repeatMode = ExoPlayer.REPEAT_MODE_ONE
-                volume = 0f // Mute background video by default? User didn't specify, but usually background relative to safe
                 playWhenReady = true
+                volume = 0f // Mute background video
+                repeatMode = ExoPlayer.REPEAT_MODE_ONE
             }
         }
 
@@ -221,7 +304,7 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                 PlayerView(it).apply {
                     player = exoPlayer
                     useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // Fill background
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 }
             },
             modifier = Modifier.fillMaxSize()

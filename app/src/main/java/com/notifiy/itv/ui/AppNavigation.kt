@@ -101,7 +101,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
@@ -115,7 +115,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
@@ -129,7 +129,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
@@ -148,7 +148,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
@@ -161,7 +161,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
@@ -174,7 +174,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
@@ -187,7 +187,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
@@ -200,7 +200,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
                         }
@@ -212,7 +212,7 @@ fun AppNavigation(
                         onMovieClick = { post ->
                             val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
                             val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.videoUrl ?: ""
+                            val videoUrl = post.getEffectiveVideoUrl()
                             val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
                             
                             navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")

@@ -8,9 +8,7 @@ plugins {
 
 android {
     namespace = "com.notifiy.itv"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.notifiy.itv"

@@ -1,6 +1,7 @@
 package com.notifiy.itv.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.notifiy.itv.data.util.VideoUrlManager
 
 data class Post(
     val id: Int,
@@ -25,6 +26,10 @@ data class Post(
             ?: portraitPoster?.let { if (it.isNotEmpty()) it else null }
             ?: _embedded?.featuredMedia?.firstOrNull()?.sourceUrl
             ?: ""
+    }
+
+    fun getEffectiveVideoUrl(): String {
+        return VideoUrlManager.getVideoUrl(id, videoUrl)
     }
 }
 
