@@ -25,6 +25,7 @@ import com.notifiy.itv.ui.viewmodel.DetailsViewModel
 fun DetailsScreen(
     id: Int,
     title: String,
+    description: String = "",
     imageUrl: String?,
     isVideoAvailable: Boolean = true,
     viewModel: DetailsViewModel = hiltViewModel(),
@@ -54,8 +55,9 @@ fun DetailsScreen(
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(50.dp),
+                .fillMaxWidth(0.6f)
+                .fillMaxHeight()
+                .padding(start = 50.dp, bottom = 50.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
             Text(
@@ -63,7 +65,19 @@ fun DetailsScreen(
                 style = MaterialTheme.typography.displayLarge,
                 color = Color.White
             )
-            Spacer(modifier = Modifier.height(20.dp))
+            
+            if (description.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.8f),
+                    maxLines = 3,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
             
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

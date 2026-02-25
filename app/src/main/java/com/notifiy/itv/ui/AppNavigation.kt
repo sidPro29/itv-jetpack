@@ -81,6 +81,19 @@ fun AppNavigation(
                 )
             }
 
+            val navigateToDetails: (com.notifiy.itv.data.model.Post) -> Unit = { post ->
+                val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString()).replace("+", "%20")
+                val cleanTitle = post.title.rendered.replace(Regex("<[^>]*>"), "").trim()
+                val encodedTitle = URLEncoder.encode(cleanTitle, StandardCharsets.UTF_8.toString()).replace("+", "%20")
+                val videoUrl = post.getEffectiveVideoUrl()
+                val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20") else ""
+                
+                val cleanDescription = post.excerpt.rendered.replace(Regex("<[^>]*>"), "").trim()
+                val encodedDescription = URLEncoder.encode(cleanDescription, StandardCharsets.UTF_8.toString()).replace("+", "%20")
+                
+                navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl&description=$encodedDescription")
+            }
+
             NavHost(
                 navController = navController,
                 startDestination = "Home",
@@ -89,51 +102,28 @@ fun AppNavigation(
                 composable("Home") {
                     val homeViewModel: com.notifiy.itv.ui.viewmodel.HomeViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                     
-                    // Refresh data when trigger changes
-                    LaunchedEffect(refreshTrigger) {
-                        if (refreshTrigger > 0) {
-                            homeViewModel.loadData()
-                        }
+                    // Refresh data when trigger changes or screen starts
+                    LaunchedEffect(refreshTrigger, Unit) {
+                        homeViewModel.loadData()
                     }
 
                     HomeScreen(
                         viewModel = homeViewModel,
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     )
                 }
                 composable("TV Shows") { 
                     CatalogScreen(
                         title = "TV Shows", 
                         type = "TV Shows",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Movies") { 
                     CatalogScreen(
                         title = "Movies", 
                         type = "Movies",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Plans") { PlaceholderScreen("Membership Plans") }
@@ -145,78 +135,41 @@ fun AppNavigation(
                     CatalogScreen(
                         title = "News", 
                         type = "News",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Videos") { 
                     CatalogScreen(
                         title = "Videos", 
                         type = "Videos",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Documentary Films") { 
                     CatalogScreen(
                         title = "Documentary Films", 
                         type = "Documentary Films",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Documentary Series") { 
                     CatalogScreen(
                         title = "Documentary Series", 
                         type = "Documentary Series",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
                 composable("Science-Fiction") { 
                     CatalogScreen(
                         title = "Science-Fiction", 
                         type = "Science-Fiction",
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     ) 
                 }
 
                 composable("Search") { 
                     SearchScreen(
-                        onMovieClick = { post ->
-                            val encodedUrl = URLEncoder.encode(post.getDisplayImageUrl(), StandardCharsets.UTF_8.toString())
-                            val encodedTitle = URLEncoder.encode(post.title.rendered, StandardCharsets.UTF_8.toString())
-                            val videoUrl = post.getEffectiveVideoUrl()
-                            val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()) else ""
-                            
-                            navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl")
-                        }
+                        onMovieClick = navigateToDetails
                     )
                 }
                 composable("Login") { 
@@ -232,12 +185,16 @@ fun AppNavigation(
 
                 // Details
                 composable(
-                    route = "Details/{id}/{title}/{imageUrl}?videoUrl={videoUrl}",
+                    route = "Details/{id}/{title}/{imageUrl}?videoUrl={videoUrl}&description={description}",
                     arguments = listOf(
                         navArgument("id") { type = NavType.IntType },
                         navArgument("title") { type = NavType.StringType },
                         navArgument("imageUrl") { type = NavType.StringType },
                         navArgument("videoUrl") { 
+                            type = NavType.StringType
+                            defaultValue = ""
+                        },
+                        navArgument("description") {
                             type = NavType.StringType
                             defaultValue = ""
                         }
@@ -247,14 +204,16 @@ fun AppNavigation(
                     val title = backStackEntry.arguments?.getString("title") ?: ""
                     val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                     val videoUrl = backStackEntry.arguments?.getString("videoUrl") ?: ""
+                    val description = backStackEntry.arguments?.getString("description") ?: ""
                     
                     DetailsScreen(
                         id = id,
                         title = title,
+                        description = description,
                         imageUrl = imageUrl,
                         isVideoAvailable = videoUrl.isNotEmpty(),
                         onPlayClick = { 
-                            val encodedVideoUrl = URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString())
+                            val encodedVideoUrl = URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20")
                             navController.navigate("Player?videoUrl=$encodedVideoUrl") 
                         }
                     )

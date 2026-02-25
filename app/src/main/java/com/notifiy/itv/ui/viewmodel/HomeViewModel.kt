@@ -26,12 +26,14 @@ data class HomeUiState(
     val documentarySeries: List<Post> = emptyList(),
     val documentaryFilms: List<Post> = emptyList(), // Video IDs
     val scienceFiction: List<Post> = emptyList(), // Video Keywords
+    val watchlist: List<Post> = emptyList(),
     val error: String? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: ItvRepository
+    private val repository: ItvRepository,
+    private val sessionManager: com.notifiy.itv.data.repository.SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -104,7 +106,8 @@ class HomeViewModel @Inject constructor(
                         talkShows = talkShows,
                         documentarySeries = documentarySeries,
                         documentaryFilms = documentaryFilms,
-                        scienceFiction = scienceFiction
+                        scienceFiction = scienceFiction,
+                        watchlist = (videos + movies + tvShows).filter { it.id.toString() in sessionManager.getWatchlist() }.distinctBy { it.id }
                     )
                 }
             } catch (e: Exception) {

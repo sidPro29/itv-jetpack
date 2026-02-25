@@ -56,6 +56,9 @@ fun HomeScreen(
                     ) 
                 }
             }
+            if (state.watchlist.isNotEmpty()) {
+                item { Section(title = "My Wishlist", items = state.watchlist, onClick = onMovieClick) }
+            }
             if (state.top10.isNotEmpty()) {
                 item { Section(title = "Our Top 10", items = state.top10, onClick = onMovieClick) }
             }
