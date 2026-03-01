@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "446448813052",
+    "firebase_url": "https://getclosetesters-default-rtdb.firebaseio.com",
+    "project_id": "getclosetesters",
+    "storage_bucket": "getclosetesters.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446448813052:android:ec2df97ba777eda6f7e879",
+        "android_client_info": {
+          "package_name": "com.notifiy.itv"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "446448813052-a018mq5o05hrn16pe8aapgok76erphim.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDv6U-yd3qkTeHeBzYv69p55o9udaA7qco"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "446448813052-a018mq5o05hrn16pe8aapgok76erphim.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

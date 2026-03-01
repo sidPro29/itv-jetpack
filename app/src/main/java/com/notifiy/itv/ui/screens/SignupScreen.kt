@@ -1,27 +1,21 @@
 package com.notifiy.itv.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -33,18 +27,18 @@ import coil.request.ImageRequest
 import com.notifiy.itv.R
 import com.notifiy.itv.ui.theme.Blue
 import com.notifiy.itv.ui.theme.TextPrimary
-import com.notifiy.itv.ui.theme.TextSecondary
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onSignupClick: () -> Unit,
-    viewModel: LoginViewModel = hiltViewModel()
+fun SignupScreen(
+    onSignupSuccess: () -> Unit,
+    onLoginClick: () -> Unit,
+    viewModel: SignupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    var username by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -71,20 +65,18 @@ fun LoginScreen(
 
     LaunchedEffect(uiState) {
         when (uiState) {
-            is LoginUiState.Success -> {
-                android.widget.Toast.makeText(context, "Login Successful!", android.widget.Toast.LENGTH_SHORT).show()
-                onLoginSuccess()
+            is SignupUiState.Success -> {
+                android.widget.Toast.makeText(context, "Account Created Successfully!", android.widget.Toast.LENGTH_SHORT).show()
+                onSignupSuccess()
             }
-            is LoginUiState.Error -> {
-                android.widget.Toast.makeText(context, (uiState as LoginUiState.Error).message, android.widget.Toast.LENGTH_LONG).show()
+            is SignupUiState.Error -> {
+                android.widget.Toast.makeText(context, (uiState as SignupUiState.Error).message, android.widget.Toast.LENGTH_LONG).show()
             }
             else -> {}
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background Poster Grid
-
         // Background Poster Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
@@ -121,7 +113,7 @@ fun LoginScreen(
                 )
         )
 
-        // Login Form
+        // Signup Form
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -133,9 +125,8 @@ fun LoginScreen(
             // Logo
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = 24.dp)
             ) {
-                // Use AsyncImage to support GIF logo
                 AsyncImage(
                     model = R.drawable.logo,
                     contentDescription = "Logo",
@@ -151,154 +142,96 @@ fun LoginScreen(
                 )
             }
 
-            // Username Field
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Username or Email Address",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                androidx.compose.foundation.text.BasicTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF262626))
-                        .padding(horizontal = 16.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        color = Color.White,
-                        fontSize = 16.sp
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (username.isEmpty()) {
-                                Text(
-                                    text = "Enter username",
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
+            // Name Field
+            SignupTextField(
+                label = "Full Name",
+                value = name,
+                onValueChange = { name = it },
+                placeholder = "Enter your name"
+            )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Email Field
+            SignupTextField(
+                label = "Email Address",
+                value = email,
+                onValueChange = { email = it },
+                placeholder = "Enter your email"
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Password Field
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Password",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                androidx.compose.foundation.text.BasicTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF262626))
-                        .padding(horizontal = 16.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        color = Color.White,
-                        fontSize = 16.sp
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (password.isEmpty()) {
-                                Text(
-                                    text = "Enter password",
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
-
-            // Forgot Password
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                Text(
-                    text = "Forgot your password?",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Blue,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
+            SignupTextField(
+                label = "Password",
+                value = password,
+                onValueChange = { password = it },
+                placeholder = "Enter password",
+                isPassword = true,
+                passwordVisible = passwordVisible
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Login Button
+            // Signup Button
             Button(
                 onClick = { 
-                    if (username.isEmpty() || password.isEmpty()) {
+                    if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
                         android.widget.Toast.makeText(context, "Please fill all fields", android.widget.Toast.LENGTH_SHORT).show()
+                    } else if (password.length < 6) {
+                        android.widget.Toast.makeText(context, "Password should be at least 6 characters", android.widget.Toast.LENGTH_SHORT).show()
                     } else {
-                        viewModel.login(username, password) 
+                        viewModel.signup(name, email, password) 
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.colors(
                     containerColor = Blue,
                     contentColor = Color.White,
-                    focusedContainerColor = Color(0xFF0044BB),
-                    focusedContentColor = Color.White
+                    focusedContainerColor = Color.White,
+                    focusedContentColor = Blue
                 ),
                 shape = ButtonDefaults.shape(RoundedCornerShape(4.dp)),
-                enabled = uiState !is LoginUiState.Loading
+                enabled = uiState !is SignupUiState.Loading
             ) {
-                if (uiState is LoginUiState.Loading) {
+                if (uiState is SignupUiState.Loading) {
                     Text(
                         text = "Loading...",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 4.dp)
+                        style = MaterialTheme.typography.labelLarge
                     )
                 } else {
                     Text(
-                        text = "Login",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 4.dp)
+                        text = "Create Account",
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Signup Link
+            // Login Link
             Surface(
-                onClick = { onSignupClick() },
+                onClick = { onLoginClick() },
                 colors = ClickableSurfaceDefaults.colors(
                     containerColor = Color.Transparent,
                     focusedContainerColor = Color(0x33FFFFFF),
-                    contentColor = Color.White
+                    contentColor = Blue,
+                    focusedContentColor = Color.White
                 ),
                 shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp))
             ) {
                 Text(
-                    text = "New to interplanetary? Sign up now",
+                    text = "Already have an account? Login",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(8.dp)
                 )
             }
 
             // Error Message
-            if (uiState is LoginUiState.Error) {
+            if (uiState is SignupUiState.Error) {
                 Text(
-                    text = (uiState as LoginUiState.Error).message,
+                    text = (uiState as SignupUiState.Error).message,
                     color = Color.Red,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 16.dp)
@@ -307,3 +240,52 @@ fun LoginScreen(
         }
     }
 }
+
+@Composable
+fun SignupTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextPrimary,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(45.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF262626))
+                .padding(horizontal = 16.dp),
+            textStyle = androidx.compose.ui.text.TextStyle(
+                color = Color.White,
+                fontSize = 16.sp
+            ),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            singleLine = true,
+            decorationBox = { innerTextField ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            color = Color.Gray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+

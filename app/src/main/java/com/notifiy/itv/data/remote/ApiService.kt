@@ -27,4 +27,14 @@ interface ApiService {
     suspend fun login(
         @retrofit2.http.Body request: com.notifiy.itv.data.model.LoginRequest
     ): com.notifiy.itv.data.model.LoginResponse
+
+    @retrofit2.http.FormUrlEncoded
+    @retrofit2.http.POST("https://api.stripe.com/v1/payment_intents")
+    suspend fun createPaymentIntent(
+        @retrofit2.http.Header("Authorization") authHeader: String,
+        @retrofit2.http.Field("amount") amount: Long,
+        @retrofit2.http.Field("currency") currency: String,
+        @retrofit2.http.Field("payment_method_types[]") paymentMethodType: String = "card",
+        @retrofit2.http.Field("description") description: String
+    ): com.notifiy.itv.data.model.PaymentIntentResponse
 }

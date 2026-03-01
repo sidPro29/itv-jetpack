@@ -43,6 +43,7 @@ fun AppNavigation(
     val currentRoute = navBackStackEntry?.destination?.route ?: "Home"
     
     val isLoggedIn by mainViewModel.isLoggedIn.collectAsState()
+    val activePlan by mainViewModel.activePlan.collectAsState()
     val refreshTrigger by mainViewModel.refreshTrigger.collectAsState()
     
     val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
@@ -77,7 +78,8 @@ fun AppNavigation(
                     onSubscribeClick = { navController.navigate("Plans") },
                     onAllVideosClick = { isDropdownOpen = !isDropdownOpen },
                     isDropdownOpen = isDropdownOpen,
-                    isLoggedIn = isLoggedIn
+                    isLoggedIn = isLoggedIn,
+                    activePlan = activePlan
                 )
             }
 
@@ -126,7 +128,21 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     ) 
                 }
-                composable("Plans") { PlaceholderScreen("Membership Plans") }
+                composable("Plans") { 
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    com.notifiy.itv.ui.screens.PlansScreen(
+                        onPaymentError = { error ->
+                            android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
+                        },
+                        onPaymentSuccess = {
+                            mainViewModel.updateLoginStatus() // Refresh plan status
+                            android.widget.Toast.makeText(context, "Payment Successful! Plan Activated.", android.widget.Toast.LENGTH_LONG).show()
+                            navController.navigate("Home") {
+                                popUpTo("Plans") { inclusive = true }
+                            }
+                        }
+                    ) 
+                }
                 composable("Advertise") { PlaceholderScreen("Advertise") }
                 
                 // Dropdown items
@@ -177,8 +193,26 @@ fun AppNavigation(
                         onLoginSuccess = {
                             mainViewModel.updateLoginStatus()
                             navController.navigate("Home") {
-                                popUpTo("Login") { inclusive = true }
+                                popUpTo("Home") { inclusive = true }
+                                launchSingleTop = true
                             }
+                        },
+                        onSignupClick = {
+                            navController.navigate("Signup")
+                        }
+                    )
+                }
+                composable("Signup") {
+                    com.notifiy.itv.ui.screens.SignupScreen(
+                        onSignupSuccess = {
+                            mainViewModel.updateLoginStatus()
+                            navController.navigate("Home") {
+                                popUpTo("Home") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        onLoginClick = {
+                            navController.navigate("Login")
                         }
                     )
                 }

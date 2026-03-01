@@ -36,6 +36,7 @@ fun TopBar(
     onAllVideosClick: () -> Unit,
     isDropdownOpen: Boolean,
     isLoggedIn: Boolean,
+    activePlan: String?,
     onLogoutClick: () -> Unit = {}
 ) {
     val tabs = listOf("Home", "All", "TV Shows", "Movies", "Plans", "Advertise")
@@ -64,23 +65,25 @@ fun TopBar(
 
             Spacer(modifier = Modifier.width(16.dp))
             
-            Surface(
-                onClick = onSubscribeClick,
-                shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
-                colors = ClickableSurfaceDefaults.colors(
-                    containerColor = Color(0xCC3C3200),
-                    focusedContainerColor = Color(0xCC3C3200),
-                    contentColor = Color(0xFFFFD700),
-                    focusedContentColor = Color(0xFFFFD700)
-                ),
-                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Text(
-                    text = "Subscribe",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
+            if (activePlan == null) {
+                Surface(
+                    onClick = onSubscribeClick,
+                    shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = Color(0xCC3C3200),
+                        focusedContainerColor = Color(0xCC3C3200),
+                        contentColor = Color(0xFFFFD700),
+                        focusedContentColor = Color(0xFFFFD700)
+                    ),
+                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Text(
+                        text = "Subscribe",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
 

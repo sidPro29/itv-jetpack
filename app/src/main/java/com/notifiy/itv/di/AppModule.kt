@@ -54,9 +54,9 @@ object AppModule {
                     .header("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36")
                 
                 // Add Authorization header if token exists
-                sessionManager.fetchAuthToken()?.let { token ->
-                    requestBuilder.header("Authorization", "Bearer $token")
-                }
+                // sessionManager.fetchAuthToken()?.let { token ->
+                //     requestBuilder.header("Authorization", "Bearer $token")
+                // }
                 
                 chain.proceed(requestBuilder.build())
             }
@@ -78,5 +78,17 @@ object AppModule {
     @Singleton
     fun provideApiService(retrofit: Retrofit): ApiService {
         return retrofit.create(ApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): com.google.firebase.auth.FirebaseAuth {
+        return com.google.firebase.auth.FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirestore(): com.google.firebase.firestore.FirebaseFirestore {
+        return com.google.firebase.firestore.FirebaseFirestore.getInstance()
     }
 }

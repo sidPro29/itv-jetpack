@@ -27,11 +27,21 @@ class SessionManager @Inject constructor(
         return prefs.getString(USER_TOKEN, null)
     }
 
-    fun saveUserInfo(email: String, name: String) {
+    fun saveUserInfo(email: String, name: String, activePlan: String = "") {
         val editor = prefs.edit()
         editor.putString(USER_EMAIL, email)
         editor.putString(USER_NAME, name)
+        editor.putString("active_plan", activePlan)
         editor.apply()
+    }
+
+    fun fetchActivePlan(): String? {
+        val plan = prefs.getString("active_plan", "")
+        return if (plan.isNullOrEmpty()) null else plan
+    }
+
+    fun updateActivePlan(plan: String) {
+        prefs.edit().putString("active_plan", plan).apply()
     }
 
     fun clearSession() {
@@ -39,6 +49,7 @@ class SessionManager @Inject constructor(
         editor.remove(USER_TOKEN)
         editor.remove(USER_EMAIL)
         editor.remove(USER_NAME)
+        editor.remove("active_plan")
         editor.apply()
     }
 

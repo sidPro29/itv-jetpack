@@ -25,51 +25,66 @@ class ItvRepository @Inject constructor(
     private val gson = Gson()
 
     suspend fun getVideos(): List<Post> {
-        // 1. Check Memory Cache
-        internalCachedVideos()?.let { return it }
-        
-        // 2. Check File Cache
-        val fileData = readFromCache("videos.json")
-        if (fileData != null) {
-            cachedVideos = fileData
-            return fileData
+        return try {
+            // 1. Check Memory Cache
+            internalCachedVideos()?.let { return it }
+            
+            // 2. Check File Cache
+            val fileData = readFromCache("videos.json")
+            if (fileData != null) {
+                cachedVideos = fileData
+                return fileData
+            }
+            
+            // 3. Fetch from Server
+            val response = apiService.getVideos()
+            cachedVideos = response
+            saveToCache("videos.json", response)
+            response
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
-        
-        // 3. Fetch from Server
-        val response = apiService.getVideos()
-        cachedVideos = response
-        saveToCache("videos.json", response)
-        return response
     }
 
     suspend fun getMovies(): List<Post> {
-        internalCachedMovies()?.let { return it }
-        
-        val fileData = readFromCache("movies.json")
-        if (fileData != null) {
-            cachedMovies = fileData
-            return fileData
+        return try {
+            internalCachedMovies()?.let { return it }
+            
+            val fileData = readFromCache("movies.json")
+            if (fileData != null) {
+                cachedMovies = fileData
+                return fileData
+            }
+            
+            val response = apiService.getMovies()
+            cachedMovies = response
+            saveToCache("movies.json", response)
+            response
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
-        
-        val response = apiService.getMovies()
-        cachedMovies = response
-        saveToCache("movies.json", response)
-        return response
     }
 
     suspend fun getTVShows(): List<Post> {
-        internalCachedTvShows()?.let { return it }
-        
-        val fileData = readFromCache("tvshows.json")
-        if (fileData != null) {
-            cachedTvShows = fileData
-            return fileData
+        return try {
+            internalCachedTvShows()?.let { return it }
+            
+            val fileData = readFromCache("tvshows.json")
+            if (fileData != null) {
+                cachedTvShows = fileData
+                return fileData
+            }
+            
+            val response = apiService.getTVShows()
+            cachedTvShows = response
+            saveToCache("tvshows.json", response)
+            response
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
         }
-        
-        val response = apiService.getTVShows()
-        cachedTvShows = response
-        saveToCache("tvshows.json", response)
-        return response
     }
 
     suspend fun clearCache() {
