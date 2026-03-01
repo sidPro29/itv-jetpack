@@ -1,6 +1,7 @@
 package com.notifiy.itv.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.notifiy.itv.BuildConfig
 import com.google.firebase.firestore.FirebaseFirestore
 import com.notifiy.itv.data.model.ItvPurchase
 import kotlinx.coroutines.tasks.await
