@@ -37,7 +37,7 @@ fun TopBar(
     isDropdownOpen: Boolean,
     isLoggedIn: Boolean,
     activePlan: String?,
-    onLogoutClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {}
 ) {
     val tabs = listOf("Home", "All", "TV Shows", "Movies", "Plans", "Advertise")
     val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
@@ -111,7 +111,7 @@ fun TopBar(
             }
         }
 
-        // Right Section: Search & Login
+        // Right Section: Search & Login/Profile
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -130,7 +130,7 @@ fun TopBar(
             }
 
             Surface(
-                onClick = if (isLoggedIn) onLogoutClick else onLoginClick,
+                onClick = if (isLoggedIn) onProfileClick else onLoginClick,
                 shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
                 colors = ClickableSurfaceDefaults.colors(
                     containerColor = if (isLoggedIn) Color.DarkGray else Blue,
@@ -143,7 +143,7 @@ fun TopBar(
                 )
             ) {
                 Text(
-                    if (isLoggedIn) "Logout" else "Login",
+                    if (isLoggedIn) "Profile" else "Login",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
                 )

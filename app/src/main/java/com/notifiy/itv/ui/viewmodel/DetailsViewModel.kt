@@ -15,12 +15,30 @@ class DetailsViewModel @Inject constructor(
     private val _isInWatchlist = MutableStateFlow(false)
     val isInWatchlist = _isInWatchlist.asStateFlow()
 
-    fun checkWatchlistStatus(id: Int) {
+    private val _isLiked = MutableStateFlow(false)
+    val isLiked = _isLiked.asStateFlow()
+
+    private val _isInPlaylist = MutableStateFlow(false)
+    val isInPlaylist = _isInPlaylist.asStateFlow()
+
+    fun checkStatus(id: Int) {
         _isInWatchlist.value = sessionManager.isInWatchlist(id)
+        _isLiked.value = sessionManager.isLiked(id)
+        _isInPlaylist.value = sessionManager.isInPlaylist(id)
     }
 
     fun toggleWatchlist(id: Int) {
         sessionManager.toggleWatchlist(id)
         _isInWatchlist.value = sessionManager.isInWatchlist(id)
+    }
+
+    fun toggleLiked(id: Int) {
+        sessionManager.toggleLiked(id)
+        _isLiked.value = sessionManager.isLiked(id)
+    }
+
+    fun togglePlaylist(id: Int) {
+        sessionManager.togglePlaylist(id)
+        _isInPlaylist.value = sessionManager.isInPlaylist(id)
     }
 }

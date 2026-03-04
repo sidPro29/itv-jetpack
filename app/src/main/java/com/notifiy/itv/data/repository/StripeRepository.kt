@@ -85,4 +85,18 @@ class StripeRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun getUserPurchases(): List<ItvPurchase> {
+        val user = auth.currentUser ?: return emptyList()
+        return try {
+            val querySnapshot = firestore.collection("itv_purchases")
+                .whereEqualTo("user_id", user.uid)
+                .get()
+                .await()
+            querySnapshot.toObjects(ItvPurchase::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
 }

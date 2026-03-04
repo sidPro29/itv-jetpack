@@ -40,6 +40,14 @@ class SessionManager @Inject constructor(
         return if (plan.isNullOrEmpty()) null else plan
     }
 
+    fun getUserName(): String {
+        return prefs.getString(USER_NAME, "") ?: ""
+    }
+
+    fun getUserEmail(): String {
+        return prefs.getString(USER_EMAIL, "") ?: ""
+    }
+
     fun updateActivePlan(plan: String) {
         prefs.edit().putString("active_plan", plan).apply()
     }
@@ -58,21 +66,53 @@ class SessionManager @Inject constructor(
     }
 
     fun toggleWatchlist(id: Int) {
-        val watchlist = getWatchlist().toMutableSet()
-        val idString = id.toString()
-        if (watchlist.contains(idString)) {
-            watchlist.remove(idString)
-        } else {
-            watchlist.add(idString)
-        }
-        prefs.edit().putStringSet("watchlist", watchlist).apply()
+        toggleSetItem("watchlist", id)
     }
 
     fun isInWatchlist(id: Int): Boolean {
-        return getWatchlist().contains(id.toString())
+        return getSet("watchlist").contains(id.toString())
     }
 
     fun getWatchlist(): Set<String> {
-        return prefs.getStringSet("watchlist", emptySet()) ?: emptySet()
+        return getSet("watchlist")
+    }
+
+    fun toggleLiked(id: Int) {
+        toggleSetItem("liked", id)
+    }
+
+    fun isLiked(id: Int): Boolean {
+        return getSet("liked").contains(id.toString())
+    }
+
+    fun getLiked(): Set<String> {
+        return getSet("liked")
+    }
+
+    fun togglePlaylist(id: Int) {
+        toggleSetItem("playlist", id)
+    }
+
+    fun isInPlaylist(id: Int): Boolean {
+        return getSet("playlist").contains(id.toString())
+    }
+
+    fun getPlaylist(): Set<String> {
+        return getSet("playlist")
+    }
+
+    private fun toggleSetItem(key: String, id: Int) {
+        val set = getSet(key).toMutableSet()
+        val idString = id.toString()
+        if (set.contains(idString)) {
+            set.remove(idString)
+        } else {
+            set.add(idString)
+        }
+        prefs.edit().putStringSet(key, set).apply()
+    }
+
+    private fun getSet(key: String): Set<String> {
+        return prefs.getStringSet(key, emptySet()) ?: emptySet()
     }
 }

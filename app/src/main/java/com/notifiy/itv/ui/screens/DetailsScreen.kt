@@ -32,9 +32,12 @@ fun DetailsScreen(
     onPlayClick: () -> Unit
 ) {
     val isInWatchlist by viewModel.isInWatchlist.collectAsState()
+    val isLiked by viewModel.isLiked.collectAsState()
+    val isInPlaylist by viewModel.isInPlaylist.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(id) {
-        viewModel.checkWatchlistStatus(id)
+        viewModel.checkStatus(id)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -46,10 +49,7 @@ fun DetailsScreen(
                 .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().run {
-                 // Add alpha/dim
-                 this
-            },
+            modifier = Modifier.fillMaxSize(),
             alpha = 0.3f
         )
 
@@ -92,9 +92,33 @@ fun DetailsScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.toggleWatchlist(id) }
+                    onClick = { 
+                        viewModel.toggleWatchlist(id)
+                        val message = if (!isInWatchlist) "Added to Watchlist" else "Removed from Watchlist"
+                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 ) {
-                    Text(if (isInWatchlist) "Remove from Watchlist" else "Add to Watchlist")
+                    Text(if (isInWatchlist) "Watchlist ✓" else "Watchlist")
+                }
+
+                Button(
+                    onClick = { 
+                        viewModel.toggleLiked(id)
+                        val message = if (!isLiked) "Added to Liked" else "Removed from Liked"
+                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(if (isLiked) "Liked ❤️" else "Like")
+                }
+
+                Button(
+                    onClick = { 
+                        viewModel.togglePlaylist(id)
+                        val message = if (!isInPlaylist) "Added to Playlist" else "Removed from Playlist"
+                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(if (isInPlaylist) "Playlist ✓" else "Playlist")
                 }
             }
         }

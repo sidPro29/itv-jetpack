@@ -62,8 +62,8 @@ fun AppNavigation(
                         } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans" || tab == "Advertise") {
                            isDropdownOpen = false
                            navController.navigate(tab) {
-                                popUpTo("Home")
-                                launchSingleTop = true
+                                 popUpTo("Home")
+                                 launchSingleTop = true
                            }
                         } else if (tab == "All") {
                             // No-op, handled by onAllVideosClick
@@ -74,7 +74,7 @@ fun AppNavigation(
                     },
                     onSearchClick = { navController.navigate("Search") },
                     onLoginClick = { navController.navigate("Login") },
-                    onLogoutClick = { mainViewModel.logout() },
+                    onProfileClick = { navController.navigate("Profile") },
                     onSubscribeClick = { navController.navigate("Plans") },
                     onAllVideosClick = { isDropdownOpen = !isDropdownOpen },
                     isDropdownOpen = isDropdownOpen,
@@ -146,7 +146,6 @@ fun AppNavigation(
                 composable("Advertise") { PlaceholderScreen("Advertise") }
                 
                 // Dropdown items
-                // Dropdown items
                 composable("News") { 
                     CatalogScreen(
                         title = "News", 
@@ -217,6 +216,27 @@ fun AppNavigation(
                     )
                 }
 
+                composable("Profile") {
+                    if (!isLoggedIn) {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("Login") {
+                                popUpTo("Profile") { inclusive = true }
+                            }
+                        }
+                    } else {
+                        com.notifiy.itv.ui.screens.ProfileScreen(
+                            onLogoutConfirm = {
+                                mainViewModel.logout()
+                                navController.navigate("Home") {
+                                    popUpTo("Home") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                            onMovieClick = navigateToDetails
+                        )
+                    }
+                }
+
                 // Details
                 composable(
                     route = "Details/{id}/{title}/{imageUrl}?videoUrl={videoUrl}&description={description}",
@@ -277,7 +297,6 @@ fun AppNavigation(
                     .width(220.dp)
                     .zIndex(20f)
                     .background(Color(0xFF1A1A1A), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-//                    .androidx.compose.foundation.border(androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF333333)), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
             ) {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                     dropdownItems.forEach { item ->
