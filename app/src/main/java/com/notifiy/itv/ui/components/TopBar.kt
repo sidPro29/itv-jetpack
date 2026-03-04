@@ -39,7 +39,7 @@ fun TopBar(
     activePlan: String?,
     onProfileClick: () -> Unit = {}
 ) {
-    val tabs = listOf("Home", "All", "TV Shows", "Movies", "Plans", "Advertise")
+    val tabs = listOf("Home", "All", "TV Shows", "Movies", "Plans & Advertise")
     val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
 
     Row(
@@ -95,7 +95,9 @@ fun TopBar(
         ) {
             tabs.forEach { tabName ->
                 val tab = if (tabName == "All") "All Videos" else tabName
-                val isSelected = currentTab == tab || (tab == "All Videos" && dropdownItems.contains(currentTab))
+                val isSelected = currentTab == tab || 
+                                (tab == "All Videos" && dropdownItems.contains(currentTab)) ||
+                                (tab == "Plans & Advertise" && currentTab == "Plans")
                 
                 TabItem(
                     text = if (tab == "All Videos") "$tab ▼" else tab,

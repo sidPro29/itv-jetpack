@@ -59,9 +59,10 @@ fun AppNavigation(
                              isDropdownOpen = false
                              // Handle dropdown navigation logic if needed, currently placeholder
                              navController.navigate(tab) { launchSingleTop = true }
-                        } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans" || tab == "Advertise") {
+                        } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans & Advertise") {
                            isDropdownOpen = false
-                           navController.navigate(tab) {
+                           val targetRoute = if (tab == "Plans & Advertise") "Plans" else tab
+                           navController.navigate(targetRoute) {
                                  popUpTo("Home")
                                  launchSingleTop = true
                            }
@@ -143,7 +144,6 @@ fun AppNavigation(
                         }
                     ) 
                 }
-                composable("Advertise") { PlaceholderScreen("Advertise") }
                 
                 // Dropdown items
                 composable("News") { 
