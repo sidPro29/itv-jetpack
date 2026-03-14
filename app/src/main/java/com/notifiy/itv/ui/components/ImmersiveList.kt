@@ -36,6 +36,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.scale
 
 @Composable
 fun ImmersiveList(
@@ -66,6 +68,7 @@ fun ImmersiveList(
         modifier = modifier
             .fillMaxWidth()
             .height(400.dp)
+            .clipToBounds()
     ) {
         // Background Image (Always present as fallback/underlay)
         val imageUrl = focusedItem?.let { post ->
@@ -188,8 +191,9 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                     
                     val listener = object : AbstractYouTubePlayerListener() {
                         override fun onReady(youTubePlayer: YouTubePlayer) {
-                            youTubePlayer.mute() // Mute background video
                             youTubePlayer.loadVideo(videoId, 0f)
+                            youTubePlayer.unMute() 
+                            youTubePlayer.setVolume(100)
                         }
                     }
                     val options = IFramePlayerOptions.Builder()
@@ -202,7 +206,10 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                     initialize(listener, options)
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.35f)
+                .clipToBounds()
         )
     } else if (isWebPlayer) {
         // Use WebView for web-based players (like .php URLs)
@@ -275,14 +282,17 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                     loadDataWithBaseURL("https://interplanetary.tv", embedHtml, "text/html", "UTF-8", null)
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.35f)
+                .clipToBounds()
         )
     } else {
         // ExoPlayer for direct streams
         val exoPlayer = remember {
             ExoPlayer.Builder(context).build().apply {
                 playWhenReady = true
-                volume = 0f // Mute background video
+                volume = 1f // Play sound
                 repeatMode = ExoPlayer.REPEAT_MODE_ONE
             }
         }
