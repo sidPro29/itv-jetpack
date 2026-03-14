@@ -42,15 +42,17 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val videosDeferred = async { repository.getVideos() }
-                val moviesDeferred = async { repository.getMovies() }
-                val tvShowsDeferred = async { repository.getTVShows() }
+                val firebasePosts = repository.getFirebasePosts() ?: emptyList()
 
-                val videos = videosDeferred.await().map { SearchItem(it, "Video") }
-                val movies = moviesDeferred.await().map { SearchItem(it, "Movie") }
-                val tvShows = tvShowsDeferred.await().map { SearchItem(it, "Tvshow") }
-
-                val allItems = (videos + movies + tvShows).shuffled()
+                val allItems = firebasePosts.mapNotNull { p ->
+                    val type = when {
+                        p.second.contains("movies") -> "Movie"
+                        p.second.contains("tvshows") -> "Tvshow"
+                        p.second.contains("videos") -> "Video"
+                        else -> return@mapNotNull null
+                    }
+                    SearchItem(p.first, type)
+                }.shuffled()
 
                 _uiState.update {
                     it.copy(

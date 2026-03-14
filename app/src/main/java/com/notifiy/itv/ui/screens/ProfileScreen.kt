@@ -45,7 +45,7 @@ fun ProfileScreen(
     var selectedTab by remember { mutableStateOf("Watchlist") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Logout")
+    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Logout", "Sync Data")
 
     Column(
         modifier = Modifier
@@ -152,18 +152,20 @@ fun ProfileScreen(
         // Bottom Section: Tabs and Content
         Row(modifier = Modifier.fillMaxSize()) {
             // Sidebar Tabs
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .width(180.dp)
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                tabs.forEach { tab ->
+                items(tabs) { tab ->
                     val isSelected = selectedTab == tab
                     Surface(
                         onClick = {
                             if (tab == "Logout") {
                                 showLogoutDialog = true
+                            } else if (tab == "Sync Data") {
+                                viewModel.syncData()
                             } else {
                                 selectedTab = tab
                             }

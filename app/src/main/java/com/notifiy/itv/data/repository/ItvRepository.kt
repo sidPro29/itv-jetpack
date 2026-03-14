@@ -8,6 +8,7 @@ import com.notifiy.itv.data.remote.ApiService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +22,7 @@ class ItvRepository @Inject constructor(
     private var cachedVideos: List<Post>? = null
     private var cachedMovies: List<Post>? = null
     private var cachedTvShows: List<Post>? = null
+    private var cachedFirebasePosts: List<Pair<Post, List<String>>>? = null
 
     private val gson = Gson()
 
@@ -91,10 +93,67 @@ class ItvRepository @Inject constructor(
         cachedVideos = null
         cachedMovies = null
         cachedTvShows = null
+        cachedFirebasePosts = null
         withContext(Dispatchers.IO) {
             File(context.filesDir, "videos.json").delete()
             File(context.filesDir, "movies.json").delete()
             File(context.filesDir, "tvshows.json").delete()
+        }
+    }
+
+    suspend fun getFirebasePosts(): List<Pair<Post, List<String>>>? {
+        cachedFirebasePosts?.let { return it }
+
+        return try {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val snapshot = db.collection("itv_assets").get().await()
+            
+            if (snapshot.isEmpty) return null
+
+            val videos = getVideos()
+            val movies = getMovies()
+            val tvShows = getTVShows()
+            val allWpPosts = (videos + movies + tvShows).associateBy { it.id.toString() }
+
+            val firebasePosts = snapshot.documents.mapNotNull { doc ->
+                val assetId = doc.getString("asset_id") ?: return@mapNotNull null
+                val wpPost = allWpPosts[assetId]
+                
+                val title = doc.getString("title")?.takeIf { it.isNotEmpty() } ?: wpPost?.title?.rendered ?: ""
+                val desc = doc.getString("description")?.takeIf { it.isNotEmpty() } ?: wpPost?.content?.rendered ?: ""
+                val vUrl = doc.getString("videoUrl")?.takeIf { it.isNotEmpty() } ?: wpPost?.getEffectiveVideoUrl() ?: ""
+                val iUrlList = doc.get("imageUrl") as? List<*>
+                val imageUrl = iUrlList?.firstOrNull()?.toString()?.takeIf { it.isNotEmpty() } ?: wpPost?.getDisplayImageUrl() ?: ""
+                val tags = doc.get("tags") as? List<*> ?: emptyList<Any>()
+                val stringTags = tags.map { it.toString() }
+                val rowName = doc.getString("row_name") ?: ""
+                val type = doc.getString("type") ?: ""
+                val category = doc.getString("category") ?: ""
+                
+                val mappedPost = Post(
+                    id = assetId.toIntOrNull() ?: wpPost?.id ?: System.currentTimeMillis().toInt(),
+                    title = com.notifiy.itv.data.model.Rendered(title),
+                    content = com.notifiy.itv.data.model.Rendered(desc),
+                    excerpt = com.notifiy.itv.data.model.Rendered(desc),
+                    date = wpPost?.date ?: "",
+                    link = wpPost?.link ?: "",
+                    featuredMedia = wpPost?.featuredMedia ?: 0,
+                    videoUrl = vUrl,
+                    videoEmbed = wpPost?.videoEmbed,
+                    videoChoice = wpPost?.videoChoice,
+                    portraitPoster = imageUrl,
+                    portraitImage = null, // Always use portraitPoster
+                    subtitles = wpPost?.subtitles,
+                    _embedded = null // Always use portraitPoster
+                )
+                Pair(mappedPost, stringTags + listOf(rowName, type, category))
+            }
+
+            cachedFirebasePosts = firebasePosts
+            firebasePosts
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
