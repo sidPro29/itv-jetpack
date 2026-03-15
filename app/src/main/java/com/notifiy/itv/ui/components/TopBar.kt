@@ -45,7 +45,7 @@ fun TopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(70.dp)
+            .height(60.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -119,35 +119,37 @@ fun TopBar(
         ) {
             Surface(
                 onClick = onSearchClick,
-                shape = ClickableSurfaceDefaults.shape(shape = CircleShape),
+                shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
                 colors = ClickableSurfaceDefaults.colors(
                     containerColor = Color.Transparent,
-                    focusedContainerColor = Color.White,
-                    contentColor = Color.White,
-                    focusedContentColor = Color.Red
+                    focusedContainerColor = Color(0xFF00008B),
+                    contentColor = Color(0xFFAAAAAA),
+                    focusedContentColor = Color.White
                 ),
                 modifier = Modifier.padding(end = 16.dp)
             ) {
-                Text("🔍", fontSize = 20.sp, modifier = Modifier.padding(8.dp))
+                Text(
+                    text = "\uD83D\uDD0D\uFE0E Search",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
             }
 
             Surface(
                 onClick = if (isLoggedIn) onProfileClick else onLoginClick,
                 shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
                 colors = ClickableSurfaceDefaults.colors(
-                    containerColor = if (isLoggedIn) Color.DarkGray else Blue,
-                    focusedContainerColor = if (isLoggedIn) Color.Gray else Color(0xFF00008B),
-                    contentColor = Color.White
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = Color(0xFF00008B),
+                    contentColor = Color(0xFFAAAAAA),
+                    focusedContentColor = Color.White
                 ),
                 scale = ClickableSurfaceDefaults.scale(focusedScale = 1.1f),
-                border = ClickableSurfaceDefaults.border(
-                    focusedBorder = Border(BorderStroke(2.dp, Color(0xFF00008B)))
-                )
             ) {
                 Text(
                     if (isLoggedIn) "Profile" else "Login",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                 )
             }
         }
@@ -165,9 +167,9 @@ fun TabItem(
         onClick = onClick,
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
-            focusedContainerColor = Color(0x33FFFFFF),
+            focusedContainerColor = Color(0xFF00008B),
             contentColor = if (isSelected) Color.White else Color(0xFFAAAAAA),
-            focusedContentColor = Color(0xFF00008B)
+            focusedContentColor = Color.White
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
         shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(4.dp)),
@@ -177,7 +179,7 @@ fun TabItem(
             text = text,
             style = if (isSelected) MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold) 
                     else MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
         )
     }
 }

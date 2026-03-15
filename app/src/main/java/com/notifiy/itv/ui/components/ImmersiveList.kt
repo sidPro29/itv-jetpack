@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import com.notifiy.itv.ui.theme.Background
 
 @Composable
 fun ImmersiveList(
@@ -52,9 +53,6 @@ fun ImmersiveList(
     var isListFocused by remember { mutableStateOf(false) }
     var isVideoPlaying by remember { mutableStateOf(false) }
     
-    // Fallback to surface color if background not available or just use Black/Dark Gray
-    val gradientColor = MaterialTheme.colorScheme.surface 
-
     // Handle Video Playback Delay
     LaunchedEffect(focusedItem, isListFocused) {
         isVideoPlaying = false
@@ -87,7 +85,8 @@ fun ImmersiveList(
                 contentDescription = null, // decorative
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .fillMaxHeight(.85f)
                     .alpha(if (isVideoPlaying) 0f else 0.6f) // Hide image when video plays
             )
         }
@@ -97,7 +96,8 @@ fun ImmersiveList(
             val videoUrl = focusedItem?.getEffectiveVideoUrl() ?: ""
             Log.i("siddharthaverma", "ImmersiveList: videoUrl = $videoUrl")
             if (videoUrl.isNotEmpty()) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxWidth()
+                    .fillMaxHeight(.85f)) {
                      BackgroundVideoPlayer(videoUrl = videoUrl)
                 }
             }
@@ -111,8 +111,8 @@ fun ImmersiveList(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            gradientColor.copy(alpha = 0.5f),
-                            gradientColor
+                            Background.copy(alpha = 0.5f),
+                            Background
                         )
                     )
                 )
@@ -122,7 +122,6 @@ fun ImmersiveList(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(bottom = 20.dp)
         ) {
             Text(
                 text = title,
