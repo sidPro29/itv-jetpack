@@ -126,9 +126,8 @@ class ItvRepository @Inject constructor(
                 val imageUrl = iUrlList?.firstOrNull()?.toString()?.takeIf { it.isNotEmpty() } ?: wpPost?.getDisplayImageUrl() ?: ""
                 val tags = doc.get("tags") as? List<*> ?: emptyList<Any>()
                 val stringTags = tags.map { it.toString() }
-                val rowName = doc.getString("row_name") ?: ""
-                val type = doc.getString("type") ?: ""
                 val category = doc.getString("category") ?: ""
+                val genre = doc.getString("genre") ?: ""
                 
                 val mappedPost = Post(
                     id = assetId.toIntOrNull() ?: wpPost?.id ?: System.currentTimeMillis().toInt(),
@@ -143,10 +142,11 @@ class ItvRepository @Inject constructor(
                     videoChoice = wpPost?.videoChoice,
                     portraitPoster = imageUrl,
                     portraitImage = null, // Always use portraitPoster
+                    membershipLevel = wpPost?.membershipLevel,
                     subtitles = wpPost?.subtitles,
                     _embedded = null // Always use portraitPoster
                 )
-                Pair(mappedPost, stringTags + listOf(rowName, type, category))
+                Pair(mappedPost, stringTags + listOf(category, genre))
             }
 
             cachedFirebasePosts = firebasePosts

@@ -18,6 +18,7 @@ data class Post(
     @SerializedName("video_choice") val videoChoice: String?,
     @SerializedName("portrait_poster") val portraitPoster: String?,
     @SerializedName("portrait_image") val portraitImage: PortraitImage?,
+    @SerializedName("membership_level") val membershipLevel: List<String>?,
     val subtitles: List<Subtitle>?,
     val _embedded: Embedded?
 ) {

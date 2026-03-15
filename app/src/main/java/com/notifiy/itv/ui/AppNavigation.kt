@@ -269,7 +269,11 @@ fun AppNavigation(
                         onPlayClick = { 
                             val encodedVideoUrl = URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20")
                             navController.navigate("Player?videoUrl=$encodedVideoUrl") 
-                        }
+                        },
+                        onSubscribeClick = {
+                            navController.navigate("Plans")
+                        },
+                        onMovieClick = navigateToDetails
                     )
                 }
 
