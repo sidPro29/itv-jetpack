@@ -116,19 +116,56 @@ class ItvRepository @Inject constructor(
             val allWpPosts = (videos + movies + tvShows).associateBy { it.id.toString() }
 
             val firebasePosts = snapshot.documents.mapNotNull { doc ->
-                val assetId = doc.getString("asset_id") ?: return@mapNotNull null
+                val assetId = doc.getString("asset_id") ?: doc.id.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
                 val wpPost = allWpPosts[assetId]
                 
-                val title = doc.getString("title")?.takeIf { it.isNotEmpty() } ?: wpPost?.title?.rendered ?: ""
-                val desc = doc.getString("description")?.takeIf { it.isNotEmpty() } ?: wpPost?.content?.rendered ?: ""
-                val vUrl = doc.getString("videoUrl")?.takeIf { it.isNotEmpty() } ?: wpPost?.getEffectiveVideoUrl() ?: ""
-                val iUrlList = doc.get("imageUrl") as? List<*>
-                val imageUrl = iUrlList?.firstOrNull()?.toString()?.takeIf { it.isNotEmpty() } ?: wpPost?.getDisplayImageUrl() ?: ""
-                val tags = doc.get("tags") as? List<*> ?: emptyList<Any>()
-                val stringTags = tags.map { it.toString() }
-                val category = doc.getString("category") ?: ""
-                val genre = doc.getString("genre") ?: ""
+                // Handle nested structure: row_name, tags, type might be inside membership_level map
+                val membershipLevelRaw = doc.get("membership_level")
+                val membershipLevelMap = membershipLevelRaw as? Map<*, *>
                 
+                val title = doc.getString("title")?.takeIf { it.isNotEmpty() } 
+                    ?: membershipLevelMap?.get("title")?.toString()?.takeIf { it.isNotEmpty() }
+                    ?: wpPost?.title?.rendered ?: ""
+                
+                val desc = doc.getString("description")?.takeIf { it.isNotEmpty() } 
+                    ?: membershipLevelMap?.get("description")?.toString()?.takeIf { it.isNotEmpty() }
+                    ?: wpPost?.content?.rendered ?: ""
+                
+                val vUrl = doc.getString("videoUrl")?.takeIf { it.isNotEmpty() } 
+                    ?: membershipLevelMap?.get("videoUrl")?.toString()?.takeIf { it.isNotEmpty() }
+                    ?: wpPost?.getEffectiveVideoUrl() ?: ""
+                
+                // Flexible Image URL handling
+                val imageUrlRaw = doc.get("imageUrl") ?: membershipLevelMap?.get("imageUrl")
+                val imageUrl = when (imageUrlRaw) {
+                    is List<*> -> imageUrlRaw.firstOrNull()?.toString()
+                    is String -> imageUrlRaw
+                    else -> null
+                }?.takeIf { it.isNotEmpty() } ?: wpPost?.getDisplayImageUrl() ?: ""
+
+                // Extract tags, row_name, type from top level OR nested membership_level map
+                val tagsRaw = doc.get("tags") ?: membershipLevelMap?.get("tags")
+                val stringTags = when (tagsRaw) {
+                    is List<*> -> tagsRaw.map { it.toString() }
+                    is String -> tagsRaw.split(",").map { it.trim() }
+                    else -> emptyList()
+                }
+                
+                val category = doc.getString("category") ?: membershipLevelMap?.get("category")?.toString() ?: ""
+                val genre = doc.getString("genre") ?: membershipLevelMap?.get("genre")?.toString() ?: ""
+                val rowName = doc.getString("row_name") ?: membershipLevelMap?.get("row_name")?.toString() ?: ""
+                val type = doc.getString("type") ?: membershipLevelMap?.get("type")?.toString() ?: ""
+                
+                val membershipLevel = when (membershipLevelRaw) {
+                    is List<*> -> membershipLevelRaw.map { it.toString() }
+                    is Map<*, *> -> {
+                        // If it's a map, the actual "level" name might be in a field like 'name' or just use a default
+                        listOf(membershipLevelMap?.get("name")?.toString() ?: "premium")
+                    }
+                    is String -> membershipLevelRaw.split(",").map { it.trim() }
+                    else -> wpPost?.membershipLevel
+                }
+
                 val mappedPost = Post(
                     id = assetId.toIntOrNull() ?: wpPost?.id ?: System.currentTimeMillis().toInt(),
                     title = com.notifiy.itv.data.model.Rendered(title),
@@ -141,15 +178,22 @@ class ItvRepository @Inject constructor(
                     videoEmbed = wpPost?.videoEmbed,
                     videoChoice = wpPost?.videoChoice,
                     portraitPoster = imageUrl,
-                    portraitImage = null, // Always use portraitPoster
-                    membershipLevel = wpPost?.membershipLevel,
+                    portraitImage = null,
+                    membershipLevel = membershipLevel,
                     subtitles = wpPost?.subtitles,
-                    _embedded = null // Always use portraitPoster
+                    _embedded = null
                 )
-                Pair(mappedPost, stringTags + listOf(category, genre))
+                
+                val filteringTags = (stringTags + listOf(category, genre, rowName, type))
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                
+                android.util.Log.d("FirebaseSync", "Mapped asset $assetId with tags: $filteringTags")
+                Pair(mappedPost, filteringTags)
             }
 
             cachedFirebasePosts = firebasePosts
+            android.util.Log.d("FirebaseSync", "Finished syncing ${firebasePosts.size} posts")
             firebasePosts
         } catch (e: Exception) {
             e.printStackTrace()

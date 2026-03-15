@@ -50,13 +50,12 @@ class DetailsViewModel @Inject constructor(
             val tvShows = repository.getTVShows()
             val allPosts = movies + videos + tvShows
             
-            _post.value = allPosts.find { it.id == postId }
-
             // Fetch tags from Firebase
             val firebasePosts = repository.getFirebasePosts()
             val matchedFirebasePost = firebasePosts?.find { it.first.id == postId }
             
             if (matchedFirebasePost != null) {
+                _post.value = matchedFirebasePost.first
                 // The second item in the pair is the list of tags
                 val tagsList = matchedFirebasePost.second
                     .filter { it.isNotBlank() }
@@ -65,6 +64,7 @@ class DetailsViewModel @Inject constructor(
                     
                 _postTags.value = tagsList.joinToString(" • ")
             } else {
+                _post.value = allPosts.find { it.id == postId }
                 _postTags.value = "Science • News • Space" // Fallback
             }
             
