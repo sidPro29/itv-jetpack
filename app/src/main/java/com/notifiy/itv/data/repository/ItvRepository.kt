@@ -218,6 +218,7 @@ class ItvRepository @Inject constructor(
 
     suspend fun updateAssetInFirebase(
         assetId: String,
+        title: String,
         videoUrl: String,
         imageUrl: String,
         membershipLevel: String,
@@ -234,6 +235,7 @@ class ItvRepository @Inject constructor(
             }
 
             val updateMap = mutableMapOf<String, Any>(
+                "title" to title,
                 "videoUrl" to videoUrl,
                 "imageUrl" to imageUrl,
                 "membership_level" to listOf(membershipLevel),

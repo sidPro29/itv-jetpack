@@ -281,14 +281,15 @@ fun DetailsScreen(
             }
 
             UpdateAssetDialog(
+                initialTitle = rawData?.get("title")?.toString() ?: post?.title?.rendered ?: title,
                 initialVideoUrl = rawData?.get("videoUrl")?.toString() ?: post?.videoUrl ?: "",
                 initialImageUrl = rawData?.get("imageUrl")?.toString() ?: post?.portraitPoster ?: "",
                 initialMembership = firstLevel,
                 initialRowName = rawData?.get("row_name")?.toString() ?: "",
                 initialTags = tagsString,
                 onDismiss = { showUpdateForm = false },
-                onUpdate = { v, i, m, r, t ->
-                    viewModel.updateAsset(id.toString(), v, i, m, r, t) {
+                onUpdate = { t, v, i, m, r, tag ->
+                    viewModel.updateAsset(id.toString(), t, v, i, m, r, tag) {
                         showUpdateForm = false
                         android.widget.Toast.makeText(context, "Asset Updated Successfully", android.widget.Toast.LENGTH_SHORT).show()
                     }
@@ -300,14 +301,16 @@ fun DetailsScreen(
 
 @Composable
 fun UpdateAssetDialog(
+    initialTitle: String,
     initialVideoUrl: String,
     initialImageUrl: String,
     initialMembership: String,
     initialRowName: String,
     initialTags: String,
     onDismiss: () -> Unit,
-    onUpdate: (String, String, String, String, String) -> Unit
+    onUpdate: (String, String, String, String, String, String) -> Unit
 ) {
+    var title by remember { mutableStateOf(initialTitle) }
     var videoUrl by remember { mutableStateOf(initialVideoUrl) }
     var imageUrl by remember { mutableStateOf(initialImageUrl) }
     var membership by remember { mutableStateOf(initialMembership) }
@@ -328,6 +331,7 @@ fun UpdateAssetDialog(
             ) {
                 Text("Update Asset Details", style = MaterialTheme.typography.headlineSmall, color = Color.White)
                 
+                TvInputField(label = "Title", value = title, onValueChange = { title = it })
                 TvInputField(label = "Video URL", value = videoUrl, onValueChange = { videoUrl = it })
                 TvInputField(label = "Image URL", value = imageUrl, onValueChange = { imageUrl = it })
                 TvInputField(label = "Membership Level", value = membership, onValueChange = { membership = it })
@@ -347,7 +351,7 @@ fun UpdateAssetDialog(
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     androidx.tv.material3.Button(
-                        onClick = { onUpdate(videoUrl, imageUrl, membership, rowName, tags) }
+                        onClick = { onUpdate(title, videoUrl, imageUrl, membership, rowName, tags) }
                     ) {
                         Text("Update")
                     }

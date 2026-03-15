@@ -98,6 +98,7 @@ class DetailsViewModel @Inject constructor(
 
     fun updateAsset(
         assetId: String,
+        title: String,
         videoUrl: String,
         imageUrl: String,
         membershipLevel: String,
@@ -106,7 +107,7 @@ class DetailsViewModel @Inject constructor(
         onComplete: () -> Unit
     ) {
         viewModelScope.launch {
-            repository.updateAssetInFirebase(assetId, videoUrl, imageUrl, membershipLevel, rowName, tags)
+            repository.updateAssetInFirebase(assetId, title, videoUrl, imageUrl, membershipLevel, rowName, tags)
             loadDetails(assetId.toIntOrNull() ?: 0)
             onComplete()
         }
