@@ -201,6 +201,54 @@ class ItvRepository @Inject constructor(
         }
     }
 
+    suspend fun getFirebaseAssetRaw(assetId: Int): Map<String, Any>? {
+        return try {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val queryById = db.collection("itv_assets").whereEqualTo("asset_id", assetId.toString()).get().await()
+            val doc = if (!queryById.isEmpty) {
+                queryById.documents.first()
+            } else {
+                db.collection("itv_assets").document(assetId.toString()).get().await()
+            }
+            doc.data
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun updateAssetInFirebase(
+        assetId: String,
+        videoUrl: String,
+        imageUrl: String,
+        membershipLevel: String,
+        rowName: String,
+        tags: String
+    ) {
+        try {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val queryById = db.collection("itv_assets").whereEqualTo("asset_id", assetId).get().await()
+            val docRef = if (!queryById.isEmpty) {
+                queryById.documents.first().reference
+            } else {
+                db.collection("itv_assets").document(assetId)
+            }
+
+            val updateMap = mutableMapOf<String, Any>(
+                "videoUrl" to videoUrl,
+                "imageUrl" to imageUrl,
+                "membership_level" to listOf(membershipLevel),
+                "row_name" to rowName,
+                "tags" to tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            )
+            
+            docRef.set(updateMap, com.google.firebase.firestore.SetOptions.merge()).await()
+            clearCache()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
     // Helper functions for safe property access
     private fun internalCachedVideos() = cachedVideos
     private fun internalCachedMovies() = cachedMovies

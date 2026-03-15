@@ -3,7 +3,11 @@ package com.notifiy.itv.ui.screens
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,9 +32,21 @@ import coil.request.ImageRequest
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Surface
 import com.notifiy.itv.data.model.Post
 import com.notifiy.itv.ui.components.MovieCard
 import com.notifiy.itv.ui.viewmodel.DetailsViewModel
+
+@OptIn(ExperimentalTvMaterial3Api::class)
 
 @Composable
 fun DetailsScreen(
@@ -53,6 +69,15 @@ fun DetailsScreen(
     val recommendedMovies by viewModel.recommendedMovies.collectAsState()
     val upcomingMovies by viewModel.upcomingMovies.collectAsState()
     val context = LocalContext.current
+
+    var showUpdateForm by remember { mutableStateOf(false) }
+    var rawData by remember { mutableStateOf<Map<String, Any>?>(null) }
+
+    LaunchedEffect(showUpdateForm) {
+        if (showUpdateForm) {
+            rawData = viewModel.getFirebaseAssetRaw(id)
+        }
+    }
 
     LaunchedEffect(id) {
         viewModel.loadDetails(id)
@@ -202,6 +227,17 @@ fun DetailsScreen(
                         ) {
                             Text("🔗", fontSize = 18.sp)
                         }
+
+                        if (com.notifiy.itv.BuildConfig.DEBUG && viewModel.isLoggedIn()) {
+                            Button(
+                                onClick = { showUpdateForm = true },
+                                shape = ButtonDefaults.shape(CircleShape),
+                                modifier = Modifier.size(48.dp),
+                                contentPadding = PaddingValues(top = 7.dp)
+                            ) {
+                                Text("✏️", fontSize = 18.sp)
+                            }
+                        }
                     }
                 }
             }
@@ -226,6 +262,125 @@ fun DetailsScreen(
                     Spacer(modifier = Modifier.height(40.dp))
                 }
             }
+        }
+
+        if (showUpdateForm) {
+            val membershipLevelRaw = rawData?.get("membership_level")
+            val firstLevel = when (membershipLevelRaw) {
+                is List<*> -> membershipLevelRaw.firstOrNull()?.toString() ?: ""
+                is Map<*, *> -> membershipLevelRaw["name"]?.toString() ?: ""
+                is String -> membershipLevelRaw
+                else -> post?.membershipLevel?.firstOrNull() ?: ""
+            }
+            
+            val tagsRaw = rawData?.get("tags")
+            val tagsString = when (tagsRaw) {
+                is List<*> -> tagsRaw.joinToString(", ")
+                is String -> tagsRaw
+                else -> ""
+            }
+
+            UpdateAssetDialog(
+                initialVideoUrl = rawData?.get("videoUrl")?.toString() ?: post?.videoUrl ?: "",
+                initialImageUrl = rawData?.get("imageUrl")?.toString() ?: post?.portraitPoster ?: "",
+                initialMembership = firstLevel,
+                initialRowName = rawData?.get("row_name")?.toString() ?: "",
+                initialTags = tagsString,
+                onDismiss = { showUpdateForm = false },
+                onUpdate = { v, i, m, r, t ->
+                    viewModel.updateAsset(id.toString(), v, i, m, r, t) {
+                        showUpdateForm = false
+                        android.widget.Toast.makeText(context, "Asset Updated Successfully", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun UpdateAssetDialog(
+    initialVideoUrl: String,
+    initialImageUrl: String,
+    initialMembership: String,
+    initialRowName: String,
+    initialTags: String,
+    onDismiss: () -> Unit,
+    onUpdate: (String, String, String, String, String) -> Unit
+) {
+    var videoUrl by remember { mutableStateOf(initialVideoUrl) }
+    var imageUrl by remember { mutableStateOf(initialImageUrl) }
+    var membership by remember { mutableStateOf(initialMembership) }
+    var rowName by remember { mutableStateOf(initialRowName) }
+    var tags by remember { mutableStateOf(initialTags) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.85f) // Limit height to ensure it fits TV screen
+                .background(Color(0xFF1A1A1A), RoundedCornerShape(16.dp))
+                .padding(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Update Asset Details", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                
+                TvInputField(label = "Video URL", value = videoUrl, onValueChange = { videoUrl = it })
+                TvInputField(label = "Image URL", value = imageUrl, onValueChange = { imageUrl = it })
+                TvInputField(label = "Membership Level", value = membership, onValueChange = { membership = it })
+                TvInputField(label = "Row Name", value = rowName, onValueChange = { rowName = it })
+                TvInputField(label = "Tags (comma separated)", value = tags, onValueChange = { tags = it })
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.tv.material3.Button(
+                        onClick = onDismiss, 
+                        colors = ButtonDefaults.colors(containerColor = Color.DarkGray)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    androidx.tv.material3.Button(
+                        onClick = { onUpdate(videoUrl, imageUrl, membership, rowName, tags) }
+                    ) {
+                        Text("Update")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun TvInputField(label: String, value: String, onValueChange: (String) -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+    Column {
+        Text(label, color = if (isFocused) Color.White else Color.Gray, fontSize = 12.sp)
+        Surface(
+            onClick = { /* Handle click to focus */ },
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
+            colors = ClickableSurfaceDefaults.colors(
+                containerColor = Color(0xFF222222),
+                focusedContainerColor = Color(0xFF333333)
+            ),
+            modifier = Modifier.onFocusChanged { isFocused = it.isFocused }.fillMaxWidth()
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                cursorBrush = SolidColor(Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            )
         }
     }
 }

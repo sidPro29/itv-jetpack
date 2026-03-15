@@ -93,4 +93,26 @@ class DetailsViewModel @Inject constructor(
         sessionManager.togglePlaylist(id)
         _isInPlaylist.value = sessionManager.isInPlaylist(id)
     }
+
+    fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
+
+    fun updateAsset(
+        assetId: String,
+        videoUrl: String,
+        imageUrl: String,
+        membershipLevel: String,
+        rowName: String,
+        tags: String,
+        onComplete: () -> Unit
+    ) {
+        viewModelScope.launch {
+            repository.updateAssetInFirebase(assetId, videoUrl, imageUrl, membershipLevel, rowName, tags)
+            loadDetails(assetId.toIntOrNull() ?: 0)
+            onComplete()
+        }
+    }
+
+    suspend fun getFirebaseAssetRaw(assetId: Int): Map<String, Any>? {
+        return repository.getFirebaseAssetRaw(assetId)
+    }
 }
