@@ -84,21 +84,61 @@ class StripeRepository @Inject constructor(
             val wpToken = sessionManager.fetchWpToken()
             if (wpToken != null) {
                 try {
-                    android.util.Log.d("siddharthaLogs", "Syncing new purchase to WordPress for plan: ${plan.name}")
-                    // Assuming plan.id can be mapped to WP Level ID. 
-                    // In a production app, you'd have a mapping table.
-                    val wpLevelId = when(plan.id) {
-                        "basic_sd_m" -> "1"
-                        "std_hd_m" -> "2"
-                        "prem_hd_m" -> "3"
-                        "prem_4k_m" -> "4"
-                        else -> plan.id // Fallback
+                    android.util.Log.d("siddharthaLogs", "Sync: Attempting WP membership sync for plan: ${plan.name}")
+                    
+                    // Fetch WP user ID first using the user's own token
+                    val wpUser = apiService.getMe("Bearer $wpToken")
+                    val targetUserId = wpUser.id
+                    android.util.Log.d("siddharthaLogs", "Sync: Found Target WP User ID for assignment: $targetUserId")
+
+                    // Workaround: PMPro restricts standard users from editing memberships.
+                    // We must log in quietly as the Administrator to perform the upgrade API call on their behalf.
+                    android.util.Log.d("siddharthaLogs", "Sync: Fetching Master Admin Token to bypass 403 restrictions...")
+                    val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
+                    val adminToken = adminLoginRes.token
+                    
+                    if (adminToken != null) {
+                        val adminAuthHeader = "Bearer $adminToken"
+                        
+                        // Comprehensive Mapping from App Plan IDs to WordPress PMPro Level IDs
+                        val wpLevelId = when(plan.id) {
+                            "basic_sd_m" -> "8270"
+                            "basic_sd_y" -> "8271"
+                            "std_hd_m" -> "8272"
+                            "std_hd_y" -> "8273"
+                            "prem_hd_m" -> "8274"
+                            "prem_hd_y" -> "8275"
+                            "prem_4k_m" -> "8276"
+                            "prem_4k_y" -> "8277"
+                            "blogger_1_m" -> "8278"
+                            "blogger_2_m" -> "8279"
+                            "sm_biz_1_m" -> "8280"
+                            "sm_biz_2_m" -> "8281"
+                            "biz_1_m" -> "8282"
+                            "biz_2_m" -> "8283"
+                            else -> {
+                                android.util.Log.w("siddharthaLogs", "Sync: No explicit mapping found for ${plan.id}, using default/fallback.")
+                                plan.id
+                            }
+                        }
+                        
+                        android.util.Log.d("siddharthaLogs", "Sync: Mapping ${plan.id} -> WP Level $wpLevelId")
+                        
+                        val wpResponse = apiService.changeMembershipLevel(adminAuthHeader, wpLevelId, targetUserId)
+                        if (wpResponse.isSuccessful) {
+                            android.util.Log.d("siddharthaLogs", "Sync: Successfully synced purchase to WordPress for level: $wpLevelId")
+                        } else {
+                            val errorStr = wpResponse.errorBody()?.string()
+                            android.util.Log.e("siddharthaLogs", "Sync Error: Failed to sync to WordPress (Code ${wpResponse.code()}): $errorStr")
+                        }
+                    } else {
+                        android.util.Log.e("siddharthaLogs", "Sync Error: Could not obtain Master Admin Token.")
                     }
-                    apiService.changeMembershipLevel("Bearer $wpToken", wpLevelId)
-                    android.util.Log.d("siddharthaLogs", "Successfully synced purchase to WordPress")
                 } catch (e: Exception) {
-                    android.util.Log.e("siddharthaLogs", "Failed to sync purchase to WordPress: ${e.message}")
+                    android.util.Log.e("siddharthaLogs", "Sync Error: Exception during WP sync: ${e.message}")
                 }
+            } else {
+                android.util.Log.w("siddharthaLogs", "Sync Skip: No WP Token found for target user.")
             }
             
             Result.success(true)

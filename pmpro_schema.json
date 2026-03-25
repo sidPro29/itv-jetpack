@@ -1,0 +1,53 @@
+{
+    "namespace":  "pmpro/v1",
+    "methods":  [
+                    "POST",
+                    "PUT",
+                    "PATCH"
+                ],
+    "endpoints":  [
+                      {
+                          "methods":  [
+                                          "POST",
+                                          "PUT",
+                                          "PATCH"
+                                      ],
+                          "args":  {
+                                       "user_id":  {
+                                                       "required":  false
+                                                   },
+                                       "level_id":  {
+                                                        "required":  false
+                                                    },
+                                       "email":  {
+                                                     "required":  false
+                                                 },
+                                       "first_name":  {
+                                                          "required":  false
+                                                      },
+                                       "last_name":  {
+                                                         "required":  false
+                                                     },
+                                       "user_url":  {
+                                                        "required":  false
+                                                    },
+                                       "user_login":  {
+                                                          "required":  false
+                                                      },
+                                       "description":  {
+                                                           "required":  false
+                                                       },
+                                       "create_user":  {
+                                                           "required":  false
+                                                       }
+                                   }
+                      }
+                  ],
+    "_links":  {
+                   "self":  [
+                                {
+                                    "href":  "https://interplanetary.tv/wp-json/pmpro/v1/change_membership_level"
+                                }
+                            ]
+               }
+}

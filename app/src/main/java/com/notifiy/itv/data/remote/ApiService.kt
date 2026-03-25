@@ -44,12 +44,13 @@ interface ApiService {
         @retrofit2.http.Query("user_id") userId: Long
     ): retrofit2.Response<okhttp3.ResponseBody>
 
+    @retrofit2.http.FormUrlEncoded
     @retrofit2.http.POST("pmpro/v1/change_membership_level")
     suspend fun changeMembershipLevel(
         @retrofit2.http.Header("Authorization") authHeader: String,
-        @retrofit2.http.Query("level_id") levelId: String,
-        @retrofit2.http.Query("user_id") userId: String? = null
-    ): okhttp3.ResponseBody
+        @retrofit2.http.Field("level_id") levelId: String,
+        @retrofit2.http.Field("user_id") userId: Long? = null
+    ): retrofit2.Response<okhttp3.ResponseBody>
 
     @retrofit2.http.FormUrlEncoded
     @retrofit2.http.POST("https://api.stripe.com/v1/payment_intents")

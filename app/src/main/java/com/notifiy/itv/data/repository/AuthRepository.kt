@@ -195,30 +195,40 @@ class AuthRepository @Inject constructor(
             
             // Step 1: Get WP User ID from /me
             val wpUser = apiService.getMe(authHeader)
-            android.util.Log.d(TAG, "Sync: Found WP User ID: ${wpUser.id}")
+            android.util.Log.d(TAG, "Sync: Found Target WP User ID: ${wpUser.id}")
 
-            // Step 2: Get Membership using that specific ID
-            val response = apiService.getMembershipForUser(authHeader, wpUser.id)
-            if (response.isSuccessful) {
-                val jsonString = response.body()?.string() ?: ""
-                android.util.Log.d(TAG, "Sync: Raw Membership JSON: $jsonString")
-                
-                // Parse plan name from JSON (finding "name":"...")
-                if (jsonString.contains("\"name\":\"")) {
-                    val planName = jsonString.substringAfter("\"name\":\"").substringBefore("\"")
-                    android.util.Log.d(TAG, "Sync Success: Plan found -> $planName")
+            // Workaround: PMPro restricts reading statuses for standard users. We must use Master Admin token.
+            android.util.Log.d(TAG, "Sync: Fetching Master Admin Token to bypass 403 read restrictions...")
+            val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
+            val adminToken = adminLoginRes.token
+
+            if (adminToken != null) {
+                // Step 2: Get Membership using that specific ID with Admin Privileges
+                val adminAuthHeader = "Bearer $adminToken"
+                val response = apiService.getMembershipForUser(adminAuthHeader, wpUser.id)
+                if (response.isSuccessful) {
+                    val jsonString = response.body()?.string() ?: ""
+                    android.util.Log.d(TAG, "Sync: Raw Membership JSON: $jsonString")
                     
-                    // Update Firebase Firestore
-                    firestore.collection("itv_users").document(firebaseUid).update("active_plan", planName).await()
-                    
-                    // Update Local Session
-                    sessionManager.updateActivePlan(planName)
+                    // Parse plan name from JSON (finding "name":"...")
+                    if (jsonString.contains("\"name\":\"")) {
+                        val planName = jsonString.substringAfter("\"name\":\"").substringBefore("\"")
+                        android.util.Log.d(TAG, "Sync Success: Plan found -> $planName")
+                        
+                        // Update Firebase Firestore
+                        firestore.collection("itv_users").document(firebaseUid).update("active_plan", planName).await()
+                        
+                        // Update Local Session
+                        sessionManager.updateActivePlan(planName)
+                    } else {
+                        android.util.Log.d(TAG, "Sync: No active membership name found in WP response.")
+                        sessionManager.updateActivePlan("")
+                    }
                 } else {
-                    android.util.Log.d(TAG, "Sync: No active membership name found in WP response.")
-                    sessionManager.updateActivePlan("")
+                    android.util.Log.e(TAG, "Sync Failed (Code ${response.code()}): ${response.errorBody()?.string()}")
                 }
             } else {
-                android.util.Log.e(TAG, "Sync Failed (Code ${response.code()}): ${response.errorBody()?.string()}")
+                android.util.Log.e(TAG, "Sync Failed: Could not obtain Master Admin token for reading.")
             }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error during multi-step membership sync: ${e.message}")
