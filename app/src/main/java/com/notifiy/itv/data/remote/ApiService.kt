@@ -28,6 +28,29 @@ interface ApiService {
         @retrofit2.http.Body request: com.notifiy.itv.data.model.LoginRequest
     ): com.notifiy.itv.data.model.LoginResponse
 
+    @retrofit2.http.POST("wp/v2/users")
+    suspend fun signup(
+        @retrofit2.http.Body request: com.notifiy.itv.data.model.WpSignupRequest
+    ): retrofit2.Response<okhttp3.ResponseBody>
+
+    @retrofit2.http.GET("wp/v2/users/me")
+    suspend fun getMe(
+        @retrofit2.http.Header("Authorization") authHeader: String
+    ): com.notifiy.itv.data.model.WpUserResponse
+
+    @retrofit2.http.GET("pmpro/v1/get_membership_level_for_user")
+    suspend fun getMembershipForUser(
+        @retrofit2.http.Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("user_id") userId: Long
+    ): retrofit2.Response<okhttp3.ResponseBody>
+
+    @retrofit2.http.POST("pmpro/v1/change_membership_level")
+    suspend fun changeMembershipLevel(
+        @retrofit2.http.Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("level_id") levelId: String,
+        @retrofit2.http.Query("user_id") userId: String? = null
+    ): okhttp3.ResponseBody
+
     @retrofit2.http.FormUrlEncoded
     @retrofit2.http.POST("https://api.stripe.com/v1/payment_intents")
     suspend fun createPaymentIntent(

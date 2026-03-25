@@ -19,6 +19,36 @@ data class LoginResponse(
     val code: String?
 )
 
+data class WpSignupRequest(
+    val username: String,
+    val name: String,
+    val email: String,
+    val password: String
+)
+
+data class WpUserResponse(
+    val id: Long,
+    val username: String,
+    val name: String
+)
+
+data class WpMembershipResponse(
+    val membership_level: MembershipLevel? = null
+)
+
+data class MembershipLevel(
+    val id: String? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val initial_payment: String? = null,
+    val billing_amount: String? = null,
+    val cycle_number: String? = null,
+    val cycle_period: String? = null,
+    val billing_limit: String? = null,
+    val trial_amount: String? = null,
+    val trial_limit: String? = null
+)
+
 data class ItvUser(
     val user_id: String = "",
     val name: String = "",

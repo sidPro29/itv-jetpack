@@ -79,9 +79,31 @@ class StripeRepository @Inject constructor(
 
             // 3. Update local session
             sessionManager.updateActivePlan(plan.name)
+
+            // 4. Sync to WordPress in background
+            val wpToken = sessionManager.fetchWpToken()
+            if (wpToken != null) {
+                try {
+                    android.util.Log.d("siddharthaLogs", "Syncing new purchase to WordPress for plan: ${plan.name}")
+                    // Assuming plan.id can be mapped to WP Level ID. 
+                    // In a production app, you'd have a mapping table.
+                    val wpLevelId = when(plan.id) {
+                        "basic_sd_m" -> "1"
+                        "std_hd_m" -> "2"
+                        "prem_hd_m" -> "3"
+                        "prem_4k_m" -> "4"
+                        else -> plan.id // Fallback
+                    }
+                    apiService.changeMembershipLevel("Bearer $wpToken", wpLevelId)
+                    android.util.Log.d("siddharthaLogs", "Successfully synced purchase to WordPress")
+                } catch (e: Exception) {
+                    android.util.Log.e("siddharthaLogs", "Failed to sync purchase to WordPress: ${e.message}")
+                }
+            }
             
             Result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("siddharthaLogs", "Purchase Confirmation Error: ${e.message}")
             Result.failure(e)
         }
     }

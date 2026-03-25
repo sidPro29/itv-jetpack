@@ -13,6 +13,7 @@ class SessionManager @Inject constructor(
 
     companion object {
         const val USER_TOKEN = "user_token"
+        const val WP_TOKEN = "wp_token"
         const val USER_EMAIL = "user_email"
         const val USER_NAME = "user_name"
     }
@@ -21,6 +22,16 @@ class SessionManager @Inject constructor(
         val editor = prefs.edit()
         editor.putString(USER_TOKEN, token)
         editor.apply()
+    }
+
+    fun saveWpToken(token: String) {
+        val editor = prefs.edit()
+        editor.putString(WP_TOKEN, token)
+        editor.apply()
+    }
+
+    fun fetchWpToken(): String? {
+        return prefs.getString(WP_TOKEN, null)
     }
 
     fun fetchAuthToken(): String? {
@@ -55,6 +66,7 @@ class SessionManager @Inject constructor(
     fun clearSession() {
         val editor = prefs.edit()
         editor.remove(USER_TOKEN)
+        editor.remove(WP_TOKEN)
         editor.remove(USER_EMAIL)
         editor.remove(USER_NAME)
         editor.remove("active_plan")

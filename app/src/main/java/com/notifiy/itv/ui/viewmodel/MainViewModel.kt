@@ -38,6 +38,10 @@ class MainViewModel @Inject constructor(
         _isLoggedIn.value = authRepository.isLoggedIn()
         _activePlan.value = sessionManager.fetchActivePlan()
         viewModelScope.launch {
+            authRepository.getCurrentUserUid()?.let { uid ->
+                authRepository.syncMembershipWithWp(uid)
+                _activePlan.value = sessionManager.fetchActivePlan()
+            }
             itvRepository.clearCache()
             _refreshTrigger.value += 1
         }
