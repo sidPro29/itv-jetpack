@@ -15,7 +15,7 @@ class ItvApplication : Application(), ImageLoaderFactory {
         // Initialize Stripe
         com.stripe.android.PaymentConfiguration.init(
             applicationContext,
-            "pk_test_51T6DloKIOfsbn4UWmZy7H5PjxqgVtuyAerT2s84NupJ02BkhJP9AQjZeV1jOVmFdz3nAix97p5K51eDqU8C5x8YK00g2YxYqbs"
+            BuildConfig.STRIPE_PUBLISHABLE_KEY
         )
     }
 

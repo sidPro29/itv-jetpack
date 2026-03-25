@@ -27,18 +27,21 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-
-        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("stripe.publishable.key") ?: ""}\"")
-        buildConfigField("String", "STRIPE_SECRET_KEY", "\"${localProperties.getProperty("stripe.secret.key") ?: ""}\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("stripe.test.publishable.key") ?: ""}\"")
+            buildConfigField("String", "STRIPE_SECRET_KEY", "\"${localProperties.getProperty("stripe.test.secret.key") ?: ""}\"")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("stripe.live.publishable.key") ?: ""}\"")
+            buildConfigField("String", "STRIPE_SECRET_KEY", "\"${localProperties.getProperty("stripe.live.secret.key") ?: ""}\"")
         }
     }
     compileOptions {
