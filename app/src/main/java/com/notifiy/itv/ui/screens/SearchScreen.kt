@@ -193,10 +193,8 @@ fun SearchCard(
     post: Post,
     onClick: () -> Unit
 ) {
-     val imageUrl = post.portraitImage?.medium?.takeIf { it.isNotEmpty() }
-        ?: post.portraitPoster?.takeIf { it.isNotEmpty() }
-        ?: post._embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-        ?: ""
+    val imageUrl = post.portraitPoster ?: ""
+
         
     Surface(
         onClick = onClick,

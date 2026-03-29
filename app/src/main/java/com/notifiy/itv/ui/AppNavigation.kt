@@ -91,7 +91,7 @@ fun AppNavigation(
                 val videoUrl = post.getEffectiveVideoUrl()
                 val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20") else ""
                 
-                val cleanDescription = post.excerpt.rendered.replace(Regex("<[^>]*>"), "").trim()
+                val cleanDescription = (post.description ?: "").replace(Regex("<[^>]*>"), "").trim()
                 val encodedDescription = URLEncoder.encode(cleanDescription, StandardCharsets.UTF_8.toString()).replace("+", "%20")
                 
                 navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl&description=$encodedDescription")

@@ -45,7 +45,7 @@ fun ProfileScreen(
     var selectedTab by remember { mutableStateOf("Watchlist") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Logout", "Sync Data")
+    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Logout")
 
     Column(
         modifier = Modifier
@@ -164,8 +164,6 @@ fun ProfileScreen(
                         onClick = {
                             if (tab == "Logout") {
                                 showLogoutDialog = true
-                            } else if (tab == "Sync Data") {
-                                viewModel.syncData()
                             } else {
                                 selectedTab = tab
                             }

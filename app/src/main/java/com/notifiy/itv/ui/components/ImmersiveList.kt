@@ -69,12 +69,8 @@ fun ImmersiveList(
             .clipToBounds()
     ) {
         // Background Image (Always present as fallback/underlay)
-        val imageUrl = focusedItem?.let { post ->
-            post.portraitImage?.large?.takeIf { it.isNotEmpty() }
-                ?: post.portraitImage?.full?.takeIf { it.isNotEmpty() }
-                ?: post._embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-                ?: post.portraitPoster
-        }
+        val imageUrl = focusedItem?.portraitPoster
+
 
         if (imageUrl != null) {
             AsyncImage(
