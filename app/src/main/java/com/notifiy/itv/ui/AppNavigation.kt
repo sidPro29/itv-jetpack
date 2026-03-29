@@ -129,21 +129,34 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     ) 
                 }
-                composable("Plans") { 
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    com.notifiy.itv.ui.screens.PlansScreen(
-                        onPaymentError = { error ->
-                            android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
-                        },
-                        onPaymentSuccess = {
-                            mainViewModel.updateLoginStatus() // Refresh plan status
-                            android.widget.Toast.makeText(context, "Payment Successful! Plan Activated.", android.widget.Toast.LENGTH_LONG).show()
-                            navController.navigate("Home") {
+                composable(
+                    route = "Plans?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Plans" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Plans"
+                    if (!isLoggedIn) {
+                        LaunchedEffect(Unit) {
+                            navController.navigate("Login?redirectTo=$redirectTo") {
                                 popUpTo("Plans") { inclusive = true }
                             }
                         }
-                    ) 
+                    } else {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        com.notifiy.itv.ui.screens.PlansScreen(
+                            onPaymentError = { error ->
+                                android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
+                            },
+                            onPaymentSuccess = {
+                                mainViewModel.updateLoginStatus() // Refresh plan status
+                                android.widget.Toast.makeText(context, "Payment Successful! Plan Activated.", android.widget.Toast.LENGTH_LONG).show()
+                                navController.navigate("Home") {
+                                    popUpTo("Plans") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
                 }
+
                 
                 // Dropdown items
                 composable("News") { 
@@ -187,34 +200,43 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     )
                 }
-                composable("Login") { 
+                composable(
+                    route = "Login?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Home" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Home"
                     com.notifiy.itv.ui.screens.LoginScreen(
                         onLoginSuccess = {
                             mainViewModel.updateLoginStatus()
-                            navController.navigate("Home") {
-                                popUpTo("Home") { inclusive = true }
+                            navController.navigate(redirectTo) {
+                                popUpTo("Login") { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
                         onSignupClick = {
-                            navController.navigate("Signup")
+                            navController.navigate("Signup?redirectTo=$redirectTo")
                         }
                     )
                 }
-                composable("Signup") {
+                composable(
+                    route = "Signup?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Home" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Home"
                     com.notifiy.itv.ui.screens.SignupScreen(
                         onSignupSuccess = {
                             mainViewModel.updateLoginStatus()
-                            navController.navigate("Home") {
-                                popUpTo("Home") { inclusive = true }
+                            navController.navigate(redirectTo) {
+                                popUpTo("Signup") { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
                         onLoginClick = {
-                            navController.navigate("Login")
+                            navController.navigate("Login?redirectTo=$redirectTo")
                         }
                     )
                 }
+
 
                 composable("Profile") {
                     if (!isLoggedIn) {

@@ -21,8 +21,8 @@ data class HomeUiState(
     val bingeEpicSeries: List<Post> = emptyList(), // TV Shows
     val mustWatchSpaceEpic: List<Post> = emptyList(), // Movies
     val spaceToGround: List<Post> = emptyList(),
-    val sciFiUniverse: List<Post> = emptyList(),
     val news: List<Post> = emptyList(),
+
     val talkShows: List<Post> = emptyList(),
     val documentarySeries: List<Post> = emptyList(),
     val documentaryFilms: List<Post> = emptyList(), // Video IDs
@@ -47,36 +47,66 @@ class HomeViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            try {
-                // Fetch videos/movies to load watchlist items later if needed, but repository already handles caching
-                val firebasePosts = repository.getFirebasePosts() ?: emptyList()
+            
+            // Phase 1: Load initial data from assets/internal storage (no loading spinner if possible)
+            updateStacks(
+                repository.getInitialVideos(),
+                repository.getInitialMovies(),
+                repository.getInitialTVShows()
+            )
+            
+            _uiState.update { it.copy(isLoading = false) }
 
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        liveTv = firebasePosts.filter { p -> p.second.contains("LiveTV") }.map { p -> p.first },
-                        top10 = firebasePosts.filter { p -> p.second.contains("Our Top 10") }.map { p -> p.first },
-                        bingeVideos = firebasePosts.filter { p -> p.second.contains("Binge Videos") }.map { p -> p.first },
-                        bingeEpicSeries = firebasePosts.filter { p -> p.second.contains("Binge- Epic series") }.map { p -> p.first },
-                        mustWatchSpaceEpic = firebasePosts.filter { p -> p.second.contains("Must-watch space epic") }.map { p -> p.first },
-                        spaceToGround = firebasePosts.filter { p -> p.second.contains("space-to-ground Report") }.map { p -> p.first },
-                        sciFiUniverse = firebasePosts.filter { p -> p.second.contains("The sci-fi universe") }.map { p -> p.first },
-                        news = firebasePosts.filter { p -> p.second.contains("News") }.map { p -> p.first },
-                        talkShows = firebasePosts.filter { p -> p.second.contains("Talk show") }.map { p -> p.first },
-                        documentarySeries = firebasePosts.filter { p -> p.second.contains("Doccumentry series") }.map { p -> p.first },
-                        documentaryFilms = firebasePosts.filter { p -> p.second.contains("Documentry Film") }.map { p -> p.first },
-                        scienceFiction = firebasePosts.filter { p -> p.second.contains("Science Fiction") }.map { p -> p.first },
-                        watchlist = firebasePosts.map { p -> p.first }.filter { p -> p.id.toString() in sessionManager.getWatchlist() }.distinctBy { p -> p.id }
-                    )
-                }
+            // Phase 2: Update from API and refresh UI
+            try {
+                val videosTask = async { repository.updateVideos() }
+                val moviesTask = async { repository.updateMovies() }
+                val tvShowsTask = async { repository.updateTVShows() }
+                
+                updateStacks(
+                    videosTask.await(),
+                    moviesTask.await(),
+                    tvShowsTask.await()
+                )
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message ?: "Unknown error"
-                    )
-                }
+                _uiState.update { it.copy(error = e.message) }
             }
         }
     }
+
+    private fun updateStacks(videos: List<Post>, movies: List<Post>, tvShows: List<Post>) {
+        val allPosts = videos + movies + tvShows
+        
+        fun String.containsCaseInsensitive(query: String): Boolean {
+            return this.lowercase().contains(query.lowercase())
+        }
+
+        fun Post.matches(query: String): Boolean {
+            val tagsMatched = tag?.containsCaseInsensitive(query) == true
+            val genreMatched = genre?.containsCaseInsensitive(query) == true
+            val descMatched = description?.containsCaseInsensitive(query) == true
+            return tagsMatched || genreMatched || descMatched
+        }
+
+        _uiState.update {
+            it.copy(
+                liveTv = allPosts.filter { p -> p.tag?.containsCaseInsensitive("live 24/7") == true }
+                    .sortedByDescending { p -> p.title.rendered.containsCaseInsensitive("Live TV") },
+                top10 = allPosts.filter { p -> p.tag?.containsCaseInsensitive("Our Top 10") == true },
+
+                bingeVideos = allPosts.filter { p -> p.tag?.containsCaseInsensitive("Binge Videos") == true },
+                bingeEpicSeries = tvShows, // all the tvshows
+                mustWatchSpaceEpic = movies, // all the movies
+                spaceToGround = allPosts.filter { p -> p.title.rendered.containsCaseInsensitive("Space to Ground") },
+                news = allPosts.filter { p -> p.matches("news") },
+                talkShows = allPosts.filter { p -> p.matches("talk show") },
+                documentarySeries = allPosts.filter { p -> p.matches("Documentary Series") },
+                documentaryFilms = allPosts.filter { p -> p.matches("Documentary film") },
+                scienceFiction = allPosts.filter { p -> p.matches("science fiction") || p.matches("sci-fi") },
+                watchlist = allPosts.filter { p -> p.id.toString() in sessionManager.getWatchlist() }.distinctBy { p -> p.id }
+
+            )
+        }
+    }
 }
+

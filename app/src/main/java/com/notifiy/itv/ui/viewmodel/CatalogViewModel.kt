@@ -35,16 +35,17 @@ class CatalogViewModel @Inject constructor(
                 val firebasePosts = repository.getFirebasePosts() ?: emptyList()
                 
                 val items = firebasePosts.filter { p ->
-                    // Map the top-level 'type' or 'categoryName'
+                    val tags = p.second.map { it.lowercase() }
                     when (categoryName) {
-                        "Movies" -> p.second.contains("movies")
-                        "TV Shows" -> p.second.contains("tvshows")
-                        "Videos" -> p.second.contains("videos")
-                        // Everything else should just pull anything with that exactly matching tag 
-                        // Note: Our Firebase tags are "News", "Doccumentry series", "Science Fiction", etc.
-                        else -> p.second.contains(categoryName)
+                        "Movies" -> tags.contains("movies")
+                        "TV Shows" -> tags.contains("tvshows")
+                        "Videos" -> tags.contains("videos")
+                        "Documentary Films" -> tags.contains("documentary film")
+                        "Science-Fiction" -> tags.contains("science-fiction") || tags.contains("science fiction") || tags.contains("sci-fi")
+                        else -> tags.contains(categoryName.lowercase())
                     }
                 }.map { it.first }
+
                 
                 _uiState.update {
                     it.copy(

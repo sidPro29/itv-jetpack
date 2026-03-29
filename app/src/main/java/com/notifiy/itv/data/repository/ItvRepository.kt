@@ -24,46 +24,103 @@ class ItvRepository @Inject constructor(
 
     private val gson = Gson()
 
-    suspend fun getVideos(): List<Post> {
+    private fun getInternalFile(filename: String): File {
+        return File(context.filesDir, filename)
+    }
+
+    private fun loadFromInternalOrAssets(filename: String): List<Post> {
         return try {
-            cachedVideos ?: run {
-                val response = apiService.getVideos()
-                val results = response.results
-                cachedVideos = results
-                results
+            val internalFile = getInternalFile(filename)
+            val jsonString = if (internalFile.exists()) {
+                internalFile.readText()
+            } else {
+                context.assets.open(filename).bufferedReader().use { it.readText() }
             }
+            val response = gson.fromJson(jsonString, com.notifiy.itv.data.model.AssetResponse::class.java)
+            response.results
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
         }
+    }
+
+    private fun saveToInternal(filename: String, posts: List<Post>) {
+        try {
+            val response = com.notifiy.itv.data.model.AssetResponse(
+                page = 1,
+                perPage = posts.size,
+                total = posts.size,
+                totalPages = 1,
+                results = posts
+            )
+            val jsonString = gson.toJson(response)
+            getInternalFile(filename).writeText(jsonString)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun getInitialVideos(): List<Post> = withContext(Dispatchers.IO) {
+        cachedVideos = loadFromInternalOrAssets("videos_data.json")
+        cachedVideos ?: emptyList()
+    }
+
+    suspend fun getInitialMovies(): List<Post> = withContext(Dispatchers.IO) {
+        cachedMovies = loadFromInternalOrAssets("movies_data.json")
+        cachedMovies ?: emptyList()
+    }
+
+    suspend fun getInitialTVShows(): List<Post> = withContext(Dispatchers.IO) {
+        cachedTvShows = loadFromInternalOrAssets("tvshows_data.json")
+        cachedTvShows ?: emptyList()
+    }
+
+    suspend fun updateVideos(): List<Post> = withContext(Dispatchers.IO) {
+        try {
+            val results = apiService.getVideos().results
+            cachedVideos = results
+            saveToInternal("videos_data.json", results)
+            results
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cachedVideos ?: emptyList()
+        }
+    }
+
+    suspend fun updateMovies(): List<Post> = withContext(Dispatchers.IO) {
+        try {
+            val results = apiService.getMovies().results
+            cachedMovies = results
+            saveToInternal("movies_data.json", results)
+            results
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cachedMovies ?: emptyList()
+        }
+    }
+
+    suspend fun updateTVShows(): List<Post> = withContext(Dispatchers.IO) {
+        try {
+            val results = apiService.getTVShows().results
+            cachedTvShows = results
+            saveToInternal("tvshows_data.json", results)
+            results
+        } catch (e: Exception) {
+            e.printStackTrace()
+            cachedTvShows ?: emptyList()
+        }
+    }
+
+    suspend fun getVideos(): List<Post> {
+        return cachedVideos ?: getInitialVideos()
     }
 
     suspend fun getMovies(): List<Post> {
-        return try {
-            cachedMovies ?: run {
-                val response = apiService.getMovies()
-                val results = response.results
-                cachedMovies = results
-                results
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
+        return cachedMovies ?: getInitialMovies()
     }
 
     suspend fun getTVShows(): List<Post> {
-        return try {
-            cachedTvShows ?: run {
-                val response = apiService.getTVShows()
-                val results = response.results
-                cachedTvShows = results
-                results
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
+        return cachedTvShows ?: getInitialTVShows()
     }
 
     /**
@@ -103,16 +160,23 @@ class ItvRepository @Inject constructor(
             
             // Fallback: If "Top 10" or other critical categories are in the title/desc, add them
             // This ensures the Home Stacks still work even if tags are temporarily missing in API
-            val titleDesc = "${post.title} ${post.description}".lowercase()
+            val titleStr = post.title.rendered.lowercase()
+            val descStr = post.description?.lowercase() ?: ""
+            val tagsStr = post.tag?.lowercase() ?: ""
+            val genreStr = post.genre?.lowercase() ?: ""
             
-            if (titleDesc.contains("top 10")) tags.add("Our Top 10")
-            if (titleDesc.contains("live")) tags.add("LiveTV")
-            if (titleDesc.contains("space-to-ground") || titleDesc.contains("space to ground")) tags.add("space-to-ground Report")
-            if (titleDesc.contains("news")) tags.add("News")
-            if (titleDesc.contains("talk show")) tags.add("Talk show")
-            if (titleDesc.contains("documentary series")) tags.add("Doccumentry series")
-            if (titleDesc.contains("documentary film")) tags.add("Documentry Film")
-            if (titleDesc.contains("science fiction")) tags.add("Science Fiction")
+            val combinedText = "$tagsStr $genreStr $descStr"
+            
+            if (tagsStr.contains("live 24/7")) tags.add("Live TV")
+            if (tagsStr.contains("our top 10")) tags.add("Our Top 10")
+            if (tagsStr.contains("binge videos")) tags.add("Binge Videos")
+            // Item 4 & 5 (all tvshows, all movies) handled at ViewModel level or by category tag
+            if (titleStr.contains("space to ground")) tags.add("Space-to-Ground Report")
+            if (combinedText.contains("news")) tags.add("News")
+            if (combinedText.contains("talk show")) tags.add("Talk-Shows")
+            if (combinedText.contains("documentary series")) tags.add("Documentary Series")
+            if (combinedText.contains("documentary film")) tags.add("Documentary Film")
+            if (combinedText.contains("science fiction")) tags.add("Science-Fiction")
             
             Pair(post, tags.distinct())
         }
@@ -129,3 +193,4 @@ class ItvRepository @Inject constructor(
         cachedTvShows = null
     }
 }
+
