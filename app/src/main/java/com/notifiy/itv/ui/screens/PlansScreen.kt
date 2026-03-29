@@ -114,14 +114,14 @@ fun PlansScreen(
                 Column {
                     Text(
                         text = "Membership Levels",
-                        style = MaterialTheme.typography.displaySmall,
+                        style = MaterialTheme.typography.headlineLarge,
                         color = Color.White,
                         fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-1).sp
+                        letterSpacing = (-0.8).sp
                     )
                     Text(
                         text = "Unlock exclusive content and premium features",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray.copy(alpha = 0.8f)
                     )
                 }
@@ -165,7 +165,7 @@ fun PlansScreen(
                         Column(modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)) {
                             Text(
                                 text = category,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
@@ -243,13 +243,13 @@ fun PlanRow(plan: ItvPlan, isProcessing: Boolean, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1.2f)) {
                 Text(
                     text = plan.name,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.4.sp
                 )
                 Text(
                     text = "(+VAT/GST)",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.5f)
                 )
             }
@@ -258,13 +258,13 @@ fun PlanRow(plan: ItvPlan, isProcessing: Boolean, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1.5f)) {
                 Text(
                     text = "€${plan.price} per ${if (plan.billingCycle == "Monthly") "Month" else "Year"}.",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 Text(
                     text = "Customers in IT will be charged 20% tax.",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.6f)
                 )
             }

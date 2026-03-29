@@ -31,9 +31,10 @@ class StripeRepository @Inject constructor(
         return try {
             val response = apiService.getMembershipLevels(authHeader)
             if (response.isSuccessful) {
-                response.body()?.map { level ->
-                    val price = (level.initial_payment ?: "0").toDoubleOrNull() ?: 0.0
-                    val billingCycle = if (level.cycle_period?.lowercase() == "year") "Yearly" else "Monthly"
+                val levelsMap = response.body() ?: emptyMap()
+                levelsMap.values.map { level ->
+                    val price = (level.billing_amount ?: level.initial_payment ?: "0").toDoubleOrNull() ?: 0.0
+                    val billingCycle = if (level.cycle_period?.lowercase()?.contains("year") == true) "Yearly" else "Monthly"
                     
                     ItvPlan(
                         id = level.id ?: "",
@@ -44,16 +45,26 @@ class StripeRepository @Inject constructor(
                         category = level.name ?: "Membership",
                         description = level.description ?: ""
                     )
-                } ?: emptyList()
+                }
             } else {
                 Log.e(TAG, "Failed to fetch membership levels: ${response.code()}")
-                emptyList()
+                getDefaultPlans()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching membership levels: ${e.message}")
-            emptyList()
+            getDefaultPlans()
         }
     }
+
+    private fun getDefaultPlans() = listOf(
+        // Basic SD
+        ItvPlan("8270", "Basic SD All Access AVOD", 1.99, "EUR", "Monthly", "Basic SD", "SD quality, with ads"),
+        // Standard
+        ItvPlan("8272", "Standard HD Monthly", 4.99, "EUR", "Monthly", "Standard HD", "High Definition"),
+        // Premium
+        ItvPlan("8274", "Premium UHD Monthly", 7.99, "EUR", "Monthly", "Premium UHD", "Ultra High Definition")
+    )
+
 
     suspend fun createPaymentIntent(plan: ItvPlan): Result<PaymentIntentResponse> {
         return try {
@@ -93,8 +104,11 @@ class StripeRepository @Inject constructor(
 
             // 1. Log in as Administrator to perform the upgrade API call
             val adminLoginRes = try {
-                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
-            } catch (e: Exception) { null }
+                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+            } catch (e: Exception) { 
+                Log.e(TAG, "Admin login failed: ${e.message}")
+                null 
+            }
             
             val adminToken = adminLoginRes?.token
             if (adminToken != null) {
@@ -102,12 +116,12 @@ class StripeRepository @Inject constructor(
                 val wpResponse = apiService.changeMembershipLevel(adminAuthHeader, plan.id, wpUserId)
                 
                 if (wpResponse.isSuccessful) {
-                    Log.d(TAG, "WP membership updated successfully.")
+                    Log.d(TAG, "WP membership updated successfully using admin token.")
                     
                     // 2. Save to Firestore (itv_purchase collection)
                     val purchase = ItvPurchase(
                         purchase_id = UUID.randomUUID().toString(),
-                        user_id = wpUserId.toString(), // Storing WP User ID as requested
+                        user_id = wpUserId.toString(),
                         plan_name = plan.name,
                         amount = plan.price,
                         currency = plan.currency,
@@ -127,11 +141,15 @@ class StripeRepository @Inject constructor(
                     
                     return Result.success(true)
                 } else {
-                    return Result.failure(Exception("Failed to update membership on server: ${wpResponse.errorBody()?.string()}"))
+                    val errorBody = wpResponse.errorBody()?.string()
+                    Log.e(TAG, "Failed to update membership with admin access: $errorBody")
+                    return Result.failure(Exception("Failed to update membership (Admin Mode): ${wpResponse.code()} - $errorBody"))
                 }
             } else {
-                return Result.failure(Exception("Server Auth Error: Admin access failed."))
+                return Result.failure(Exception("Server Auth Error: Admin login failed. Check credentials."))
             }
+
+
         } catch (e: Exception) {
             Log.e(TAG, "confirmPurchase Error: ${e.message}")
             return Result.failure(e)

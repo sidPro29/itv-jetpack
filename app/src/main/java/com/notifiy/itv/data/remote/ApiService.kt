@@ -36,10 +36,11 @@ interface ApiService {
         @retrofit2.http.Query("user_id") userId: Long
     ): retrofit2.Response<okhttp3.ResponseBody>
     
-    @retrofit2.http.GET("pmpro/v1/get_membership_levels")
+    @retrofit2.http.GET("pmpro/v1/membership_levels")
     suspend fun getMembershipLevels(
         @retrofit2.http.Header("Authorization") authHeader: String
-    ): retrofit2.Response<List<com.notifiy.itv.data.model.MembershipLevel>>
+    ): retrofit2.Response<Map<String, com.notifiy.itv.data.model.MembershipLevel>>
+
     
     @retrofit2.http.GET("pmpro/v1/get_orders")
     suspend fun getOrders(
