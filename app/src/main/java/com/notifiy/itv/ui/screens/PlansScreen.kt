@@ -78,6 +78,15 @@ fun PlansScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF040404))) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).zIndex(90f),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(color = Blue)
+            }
+        }
+
         if (uiState.isPaymentProcessing) {
             Box(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).zIndex(100f),
@@ -140,7 +149,7 @@ fun PlansScreen(
             }
 
             // Scrollable Content
-            val filteredPlans = viewModel.availablePlans.filter { 
+            val filteredPlans = uiState.availablePlans.filter { 
                 it.billingCycle == uiState.selectedBillingCycle || it.category.contains("Ads")
             }
             val categories = filteredPlans.map { it.category }.distinct()
@@ -174,6 +183,7 @@ fun PlansScreen(
                 }
             }
         }
+
     }
 }
 

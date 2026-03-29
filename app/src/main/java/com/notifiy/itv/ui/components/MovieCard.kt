@@ -60,16 +60,41 @@ fun MovieCard(
                 .aspectRatio(aspectRatio)
                 .padding(8.dp)
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(imageUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = post.title.rendered,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = post.title.rendered,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Crown Icon for Premium Content
+                val isFree = post.membershipLevel.isEmpty() ||
+                                post.membershipLevel.any { it.contains("free", ignoreCase = true) }
+                
+                if (!isFree) {
+                    androidx.compose.foundation.Canvas(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                    ) {
+                        drawCircle(color = Color(0xFFFFD700)) // Gold/Yellow circle
+                    }
+                    Text(
+                        text = "👑",
+                        fontSize = 14.sp,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 7.dp, end = 7.dp)
+                    )
+                }
+            }
         }
+
 
         Text(
             text = post.title.rendered,

@@ -84,8 +84,10 @@ class AuthRepository @Inject constructor(
             
             // Step 1: Get current WP User ID
             val wpUser = apiService.getMe(authHeader)
+            sessionManager.saveWpUserId(wpUser.id)
             
             // Step 2: Get Membership using that WP User ID
+
             // Using admin token if needed (as in old code) to ensure bypass restrictions
             val adminLoginRes = try {
                 apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))

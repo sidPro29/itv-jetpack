@@ -16,9 +16,19 @@ class SessionManager @Inject constructor(
         const val WP_TOKEN = "wp_token"
         const val USER_EMAIL = "user_email"
         const val USER_NAME = "user_name"
+        const val WP_USER_ID = "wp_user_id"
+    }
+
+    fun saveWpUserId(id: Long) {
+        prefs.edit().putLong(WP_USER_ID, id).apply()
+    }
+
+    fun fetchWpUserId(): Long {
+        return prefs.getLong(WP_USER_ID, -1L)
     }
 
     fun saveAuthToken(token: String) {
+
         val editor = prefs.edit()
         editor.putString(USER_TOKEN, token)
         editor.apply()
@@ -69,8 +79,10 @@ class SessionManager @Inject constructor(
         editor.remove(WP_TOKEN)
         editor.remove(USER_EMAIL)
         editor.remove(USER_NAME)
+        editor.remove(WP_USER_ID)
         editor.remove("active_plan")
         editor.apply()
+
     }
 
     fun isLoggedIn(): Boolean {

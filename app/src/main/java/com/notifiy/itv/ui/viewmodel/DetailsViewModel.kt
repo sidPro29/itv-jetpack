@@ -96,5 +96,19 @@ class DetailsViewModel @Inject constructor(
 
     fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
 
-    // Internal update functionality removed as it relied on Firebase Asset Flow
+    fun canWatch(): Boolean {
+        val currentPost = _post.value ?: return false
+        val membershipList = currentPost.membershipLevel
+        
+        // Rule: If empty or contains "free", anyone can watch
+        if (membershipList.isEmpty() || membershipList.any { it.equals("free", ignoreCase = true) }) {
+            return true
+        }
+        
+        // Else: Check if user has an active plan
+        val plan = sessionManager.fetchActivePlan()
+        return !plan.isNullOrEmpty()
+    }
+
 }
+

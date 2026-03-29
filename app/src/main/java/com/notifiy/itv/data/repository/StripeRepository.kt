@@ -1,7 +1,14 @@
 package com.notifiy.itv.data.repository
 
+import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
 import com.notifiy.itv.BuildConfig
+import com.notifiy.itv.data.model.ItvPlan
 import com.notifiy.itv.data.model.ItvPurchase
+import com.notifiy.itv.data.model.MembershipLevel
+import com.notifiy.itv.data.model.PaymentIntentResponse
+import com.notifiy.itv.data.remote.ApiService
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -10,12 +17,45 @@ import javax.inject.Singleton
 @Singleton
 class StripeRepository @Inject constructor(
     private val sessionManager: SessionManager,
-    private val apiService: com.notifiy.itv.data.remote.ApiService
+    private val apiService: ApiService,
+    private val firestore: FirebaseFirestore
 ) {
+    private val TAG = "siddharthaLogs"
     private val STRIPE_PUBLISHABLE_KEY = BuildConfig.STRIPE_PUBLISHABLE_KEY
     private val STRIPE_SECRET_KEY = BuildConfig.STRIPE_SECRET_KEY
 
-    suspend fun createPaymentIntent(plan: com.notifiy.itv.data.model.ItvPlan): Result<com.notifiy.itv.data.model.PaymentIntentResponse> {
+    suspend fun getMembershipLevels(): List<ItvPlan> {
+        val wpToken = sessionManager.fetchWpToken() ?: ""
+        val authHeader = "Bearer $wpToken"
+        
+        return try {
+            val response = apiService.getMembershipLevels(authHeader)
+            if (response.isSuccessful) {
+                response.body()?.map { level ->
+                    val price = (level.initial_payment ?: "0").toDoubleOrNull() ?: 0.0
+                    val billingCycle = if (level.cycle_period?.lowercase() == "year") "Yearly" else "Monthly"
+                    
+                    ItvPlan(
+                        id = level.id ?: "",
+                        name = level.name ?: "Unknown Plan",
+                        price = price,
+                        currency = "EUR",
+                        billingCycle = billingCycle,
+                        category = level.name ?: "Membership",
+                        description = level.description ?: ""
+                    )
+                } ?: emptyList()
+            } else {
+                Log.e(TAG, "Failed to fetch membership levels: ${response.code()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching membership levels: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun createPaymentIntent(plan: ItvPlan): Result<PaymentIntentResponse> {
         return try {
             val amount = (plan.price * 100).toLong() // Convert to cents
             val response = apiService.createPaymentIntent(
@@ -30,84 +70,95 @@ class StripeRepository @Inject constructor(
         }
     }
 
-    suspend fun confirmPurchase(plan: com.notifiy.itv.data.model.ItvPlan, paymentIntentId: String): Result<Boolean> {
-        val wpToken = sessionManager.fetchWpToken() ?: return Result.failure(Exception("WordPress Token not found. Please login again."))
+    suspend fun confirmPurchase(plan: ItvPlan, paymentIntentId: String): Result<Boolean> {
+        val wpToken = sessionManager.fetchWpToken() ?: return Result.failure(Exception("WordPress Token not found."))
+        val wpUserId = sessionManager.fetchWpUserId()
         
-        return try {
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        if (wpUserId == -1L) {
+             return Result.failure(Exception("WordPress User ID not found. Please log in again."))
+        }
+
+        try {
             val calendar = Calendar.getInstance()
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val purchaseDate = dateFormat.format(calendar.time)
             
-            // 1. Update local session early
-            sessionManager.updateActivePlan(plan.name)
+            // Calculate expiry (1 month or 1 year)
+            if (plan.billingCycle == "Yearly") {
+                calendar.add(Calendar.YEAR, 1)
+            } else {
+                calendar.add(Calendar.MONTH, 1)
+            }
+            val expiryDate = dateFormat.format(calendar.time)
 
-            // 2. Sync to WordPress exclusively
-            try {
-                android.util.Log.d("siddharthaLogs", "Sync: Attempting WP membership sync for plan: ${plan.name}")
+            // 1. Log in as Administrator to perform the upgrade API call
+            val adminLoginRes = try {
+                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
+            } catch (e: Exception) { null }
+            
+            val adminToken = adminLoginRes?.token
+            if (adminToken != null) {
+                val adminAuthHeader = "Bearer $adminToken"
+                val wpResponse = apiService.changeMembershipLevel(adminAuthHeader, plan.id, wpUserId)
                 
-                // Fetch WP user ID first using the user's current token
-                val wpUser = apiService.getMe("Bearer $wpToken")
-                val targetUserId = wpUser.id
-                android.util.Log.d("siddharthaLogs", "Sync: Found Target WP User ID for assignment: $targetUserId")
-
-                // Step 2.1: Log in as Administrator to perform the upgrade API call on their behalf.
-                android.util.Log.d("siddharthaLogs", "Sync: Fetching Master Admin Token to bypass 403 restrictions...")
-                val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
-                val adminToken = adminLoginRes.token
-                
-                if (adminToken != null) {
-                    val adminAuthHeader = "Bearer $adminToken"
+                if (wpResponse.isSuccessful) {
+                    Log.d(TAG, "WP membership updated successfully.")
                     
-                    // Comprehensive Mapping from App Plan IDs to WordPress PMPro Level IDs
-                    val wpLevelId = when(plan.id) {
-                        "basic_sd_m" -> "8270"
-                        "basic_sd_y" -> "8271"
-                        "std_hd_m" -> "8272"
-                        "std_hd_y" -> "8273"
-                        "prem_hd_m" -> "8274"
-                        "prem_hd_y" -> "8275"
-                        "prem_4k_m" -> "8276"
-                        "prem_4k_y" -> "8277"
-                        "blogger_1_m" -> "8278"
-                        "blogger_2_m" -> "8279"
-                        "sm_biz_1_m" -> "8280"
-                        "sm_biz_2_m" -> "8281"
-                        "biz_1_m" -> "8282"
-                        "biz_2_m" -> "8283"
-                        else -> {
-                            android.util.Log.w("siddharthaLogs", "Sync: No explicit mapping found for ${plan.id}, using default/fallback.")
-                            plan.id
-                        }
-                    }
+                    // 2. Save to Firestore (itv_purchase collection)
+                    val purchase = ItvPurchase(
+                        purchase_id = UUID.randomUUID().toString(),
+                        user_id = wpUserId.toString(), // Storing WP User ID as requested
+                        plan_name = plan.name,
+                        amount = plan.price,
+                        currency = plan.currency,
+                        purchase_date = purchaseDate,
+                        expiry_date = expiryDate,
+                        status = "Success",
+                        stripe_payment_id = paymentIntentId
+                    )
                     
-                    android.util.Log.d("siddharthaLogs", "Sync: Mapping ${plan.id} -> WP Level $wpLevelId")
+                    firestore.collection("itv_purchase")
+                        .document(purchase.purchase_id)
+                        .set(purchase)
+                        .await()
                     
-                    val wpResponse = apiService.changeMembershipLevel(adminAuthHeader, wpLevelId, targetUserId)
-                    if (wpResponse.isSuccessful) {
-                        android.util.Log.d("siddharthaLogs", "Sync: Successfully synced purchase to WordPress for level: $wpLevelId")
-                        Result.success(true)
-                    } else {
-                        val errorStr = wpResponse.errorBody()?.string()
-                        android.util.Log.e("siddharthaLogs", "Sync Error: Failed to sync to WordPress (Code ${wpResponse.code()}): $errorStr")
-                        Result.failure(Exception("Failed to update membership on server: $errorStr"))
-                    }
+                    // 3. Update local session
+                    sessionManager.updateActivePlan(plan.name)
+                    
+                    return Result.success(true)
                 } else {
-                    android.util.Log.e("siddharthaLogs", "Sync Error: Could not obtain Master Admin Token.")
-                    Result.failure(Exception("Server Auth Error: Admin access failed during sync."))
+                    return Result.failure(Exception("Failed to update membership on server: ${wpResponse.errorBody()?.string()}"))
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("siddharthaLogs", "Sync Error: Exception during WP sync: ${e.message}")
-                Result.failure(e)
+            } else {
+                return Result.failure(Exception("Server Auth Error: Admin access failed."))
             }
         } catch (e: Exception) {
-            android.util.Log.e("siddharthaLogs", "Purchase Confirmation Error: ${e.message}")
-            Result.failure(e)
+            Log.e(TAG, "confirmPurchase Error: ${e.message}")
+            return Result.failure(e)
         }
     }
 
     suspend fun getUserPurchases(): List<ItvPurchase> {
-        // Since we removed Firebase Firestore tracking of purchases, 
-        // we'd normally fetch this from WP PMPro orders. 
-        // For now, returning empty or could implement WP order history fetch.
-        return emptyList()
+        val wpUserId = sessionManager.fetchWpUserId()
+        if (wpUserId == -1L) return emptyList()
+
+        return try {
+            val snapshot = firestore.collection("itv_purchase")
+                .whereEqualTo("user_id", wpUserId.toString())
+                .get()
+                .await()
+            
+            snapshot.toObjects(ItvPurchase::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching purchases: ${e.message}")
+            emptyList()
+        }
+    }
+    
+    suspend fun hasActivePlan(planName: String): Boolean {
+        val purchases = getUserPurchases()
+        val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        
+        return purchases.any { it.plan_name == planName && it.expiry_date > now }
     }
 }

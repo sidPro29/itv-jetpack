@@ -145,12 +145,8 @@ fun DetailsScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val membershipLevels = post?.membershipLevel ?: emptyList()
-                        val membershipContainsFree = membershipLevels.any { it.equals("free", ignoreCase = true) }
-                        val canPlay = membershipContainsFree || !activePlan.isNullOrEmpty()
-
                         if (isVideoAvailable) {
-                            if (canPlay) {
+                            if (viewModel.canWatch()) {
                                 Button(
                                     onClick = onPlayClick,
                                     colors = ButtonDefaults.colors(
@@ -159,7 +155,7 @@ fun DetailsScreen(
                                     ),
                                     modifier = Modifier.padding(end = 8.dp)
                                 ) {
-                                    Text("▶ Play to Watch", fontWeight = FontWeight.Bold)
+                                    Text("▶ Click to Watch", fontWeight = FontWeight.Bold)
                                 }
                             } else {
                                 Button(
@@ -174,6 +170,7 @@ fun DetailsScreen(
                                 }
                             }
                         }
+
 
                         // Circular buttons
                         Button(
