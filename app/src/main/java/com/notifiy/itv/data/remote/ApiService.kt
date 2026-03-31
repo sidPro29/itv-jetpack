@@ -1,10 +1,37 @@
 package com.notifiy.itv.data.remote
 
+import com.notifiy.itv.data.model.NewsArticle
 import com.notifiy.itv.data.model.Post
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
+
+    @GET("wp/v2/posts")
+    suspend fun getNewsArticles(
+        @Query("categories") categories: Int = 10794,
+        @Query("per_page") perPage: Int = 20,
+        @Query("page") page: Int = 1,
+        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded"
+    ): List<NewsArticle>
+
+    @GET("wp/v2/posts")
+    suspend fun searchNewsArticles(
+        @Query("search") query: String,
+        @Query("categories") categories: Int = 10794,
+        @Query("per_page") perPage: Int = 10,
+        @Query("_embed") embed: String = "wp:featuredmedia",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded"
+    ): List<NewsArticle>
+
+    @GET("wp/v2/posts/{id}")
+    suspend fun getNewsArticleById(
+        @retrofit2.http.Path("id") id: Int,
+        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded"
+    ): NewsArticle
+
     @GET("custom-streamit/v1/videos")
     suspend fun getVideos(): com.notifiy.itv.data.model.AssetResponse
 

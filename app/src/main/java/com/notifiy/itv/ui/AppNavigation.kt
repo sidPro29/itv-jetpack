@@ -23,9 +23,11 @@ import com.notifiy.itv.ui.components.TopBar
 import com.notifiy.itv.ui.screens.CatalogScreen
 import com.notifiy.itv.ui.screens.DetailsScreen
 import com.notifiy.itv.ui.screens.HomeScreen
+import com.notifiy.itv.ui.screens.NewsDetailScreen
 import com.notifiy.itv.ui.screens.PlaceholderScreen
 import com.notifiy.itv.ui.screens.PlayerScreen
 import com.notifiy.itv.ui.screens.SearchScreen
+import com.notifiy.itv.ui.screens.SpaceNewsScreen
 import com.notifiy.itv.ui.theme.Background
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -46,7 +48,7 @@ fun AppNavigation(
     val activePlan by mainViewModel.activePlan.collectAsState()
     val refreshTrigger by mainViewModel.refreshTrigger.collectAsState()
     
-    val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
+    val dropdownItems = listOf("News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
     var isDropdownOpen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -54,11 +56,17 @@ fun AppNavigation(
             if (!currentRoute.startsWith("Player") && !currentRoute.startsWith("Details")) {
                 TopBar(
                     currentTab = currentRoute.substringBefore("/"), 
-                    onTabSelected = { tab ->
+                     onTabSelected = { tab ->
                         if (dropdownItems.contains(tab)) {
                              isDropdownOpen = false
                              // Handle dropdown navigation logic if needed, currently placeholder
                              navController.navigate(tab) { launchSingleTop = true }
+                        } else if (tab == "News") {
+                            isDropdownOpen = false
+                            navController.navigate("News") {
+                                popUpTo("Home")
+                                launchSingleTop = true
+                            }
                         } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans & Advertise") {
                            isDropdownOpen = false
                            val targetRoute = if (tab == "Plans & Advertise") "Plans" else tab
@@ -115,13 +123,38 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     )
                 }
-                composable("TV Shows") { 
+                composable("News") {
+                    val newsViewModel: com.notifiy.itv.ui.viewmodel.NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    SpaceNewsScreen(
+                        viewModel = newsViewModel,
+                        onArticleClick = { articleId ->
+                            navController.navigate("NewsDetail/$articleId")
+                        }
+                    )
+                }
+                composable(
+                    route = "NewsDetail/{articleId}",
+                    arguments = listOf(navArgument("articleId") { type = NavType.IntType })
+                ) {
+                    val detailViewModel: com.notifiy.itv.ui.viewmodel.NewsDetailViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    val newsViewModel: com.notifiy.itv.ui.viewmodel.NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    NewsDetailScreen(
+                        detailViewModel = detailViewModel,
+                        newsViewModel = newsViewModel,
+                        onArticleClick = { articleId ->
+                            navController.navigate("NewsDetail/$articleId") { launchSingleTop = true }
+                        },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable("TV Shows") {
                     CatalogScreen(
-                        title = "TV Shows", 
+                        title = "TV Shows",
                         type = "TV Shows",
                         onMovieClick = navigateToDetails
-                    ) 
+                    )
                 }
+
                 composable("Movies") { 
                     CatalogScreen(
                         title = "Movies", 
@@ -159,12 +192,12 @@ fun AppNavigation(
 
                 
                 // Dropdown items
-                composable("News") { 
+                composable("News Videos") {
                     CatalogScreen(
-                        title = "News", 
+                        title = "News Videos",
                         type = "News",
                         onMovieClick = navigateToDetails
-                    ) 
+                    )
                 }
                 composable("Videos") { 
                     CatalogScreen(
