@@ -21,6 +21,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +34,7 @@ import com.notifiy.itv.data.model.NewsArticle
 import com.notifiy.itv.ui.viewmodel.NewsDetailViewModel
 import com.notifiy.itv.ui.viewmodel.NewsViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.focusable
 
 private const val DETAIL_TAG = "siddharthaLogs"
 
@@ -68,22 +72,20 @@ fun NewsDetailScreen(
                 .fillMaxHeight()
                 .focusGroup()  // keeps D-pad focus inside this panel
                 .onPreviewKeyEvent { ke ->
+                    // Instead of full consume (true), we return false to allow the focus system
+                    // to find focusable targets (like Prev/Next buttons).
                     when {
                         ke.key == Key.DirectionDown && ke.type == KeyEventType.KeyDown -> {
-                            // Always consume DOWN — prevents focus jumping to right panel
-                            // even when already at the bottom of the article
-                            Log.d(DETAIL_TAG, "NewsDetailScreen: D-pad DOWN — scrollBy 260f, pos=${scrollState.value}")
+                            Log.d(DETAIL_TAG, "NewsDetailScreen: D-pad DOWN — scrollBy 260f")
                             scope.launch { scrollState.animateScrollBy(260f) }
-                            true  // consume — never let this reach the focus system
+                            false // Don't consume — allow focus to search for items below
                         }
                         ke.key == Key.DirectionUp && ke.type == KeyEventType.KeyDown -> {
-                            val canScrollUp = scrollState.value > 0
-                            Log.d(DETAIL_TAG, "NewsDetailScreen: D-pad UP — canScrollUp=$canScrollUp, pos=${scrollState.value}")
-                            if (canScrollUp) {
+                            if (scrollState.value > 0) {
                                 scope.launch { scrollState.animateScrollBy(-260f) }
-                                true  // consume only when there is scroll to undo
+                                false
                             } else {
-                                false  // at top — let UP propagate so TopBar can be reached
+                                false
                             }
                         }
                         else -> false
@@ -158,7 +160,9 @@ fun NewsDetailScreen(
                                 focusedContentColor = Color.White
                             ),
                             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
-                            modifier = Modifier.padding(bottom = 14.dp)
+                            modifier = Modifier
+                                .padding(bottom = 14.dp)
+                                .focusProperties { right = FocusRequester.Cancel }  // Stay in left panel
                         ) {
                             Text(
                                 "← Back to News",
@@ -205,7 +209,7 @@ fun NewsDetailScreen(
 
                             // ── Title ─────────────────────────────────
                             Text(
-                                text = article.title.rendered,
+                                text = article.getCleanTitle(),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 24.sp,
@@ -227,20 +231,26 @@ fun NewsDetailScreen(
                                         .height(220.dp)
                                         .clip(RoundedCornerShape(10.dp))
                                 )
-                                Spacer(Modifier.height(16.dp))
+                                Spacer(Modifier.height(24.dp))
                             }
 
-                            // ── Article body ──────────────────────────
                             val content = article.getCleanContent()
                             if (content.isNotEmpty()) {
+                                // Make content focusable so focus system can "stop" here while scrolling down
+                                // This provides a better bridge between top back button and bottom nav buttons
+                                var isTextFocused by remember { mutableStateOf(false) }
                                 Text(
                                     text = content,
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         lineHeight = 24.sp,
                                         fontSize = 13.sp
                                     ),
-                                    color = Color(0xFFCCCCCC),
-                                    modifier = Modifier.padding(bottom = 20.dp)
+                                    color = if (isTextFocused) Color.White else Color(0xFFCCCCCC),
+                                    modifier = Modifier
+                                        .padding(bottom = 20.dp)
+                                        .focusable()
+                                        .onFocusChanged { isTextFocused = it.isFocused }
+                                        .focusProperties { right = FocusRequester.Cancel }
                                 )
                             }
 
@@ -255,7 +265,94 @@ fun NewsDetailScreen(
                                     fontSize = 11.sp
                                 )
                                 FlowTagRow(tags = tags)
-                                Spacer(Modifier.height(16.dp))
+                                Spacer(Modifier.height(32.dp))
+                            }
+
+                            // ── Post Navigation: Previous / Next ────────
+                            val allArticles = if (newsState.searchQuery.isBlank()) newsState.articles else newsState.searchResults
+                            val currentIndex = allArticles.indexOfFirst { it.id == article.id }
+                            val prevArticle = if (currentIndex > 0) allArticles[currentIndex - 1] else null
+                            val nextArticle = if (currentIndex != -1 && currentIndex < allArticles.size - 1) allArticles[currentIndex + 1] else null
+
+                            if (prevArticle != null || nextArticle != null) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    // Previous Post
+                                    if (prevArticle != null) {
+                                        Surface(
+                                            onClick = { onArticleClick(prevArticle.id) },
+                                            colors = ClickableSurfaceDefaults.colors(
+                                                containerColor = Color.Transparent,
+                                                focusedContainerColor = Color(0xFF1A1A2E),
+                                                contentColor = Color.White
+                                            ),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(end = 8.dp)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp)) {
+                                                Text(
+                                                    text = prevArticle.getCleanTitle(),
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = Color.White,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    fontSize = 12.sp
+                                                )
+                                                Spacer(Modifier.height(4.dp))
+                                                Text(
+                                                    text = "← Previous Post",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color(0xFF6C63FF),
+                                                    fontSize = 10.sp
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Spacer(Modifier.weight(1f))
+                                    }
+
+                                    // Next Post
+                                    if (nextArticle != null) {
+                                        Surface(
+                                            onClick = { onArticleClick(nextArticle.id) },
+                                            colors = ClickableSurfaceDefaults.colors(
+                                                containerColor = Color.Transparent,
+                                                focusedContainerColor = Color(0xFF1A1A2E),
+                                                contentColor = Color.White
+                                            ),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(start = 8.dp)
+                                        ) {
+                                            Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.End) {
+                                                Text(
+                                                    text = nextArticle.getCleanTitle(),
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = Color.White,
+                                                    maxLines = 2,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    fontSize = 12.sp,
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                                )
+                                                Spacer(Modifier.height(4.dp))
+                                                Text(
+                                                    text = "Next Post →",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color(0xFF6C63FF),
+                                                    fontSize = 10.sp
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        Spacer(Modifier.weight(1f))
+                                    }
+                                }
                             }
                         }
                     }

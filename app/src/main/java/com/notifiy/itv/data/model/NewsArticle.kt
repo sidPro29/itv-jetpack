@@ -21,23 +21,36 @@ data class NewsArticle(
             ?: ""
     }
 
-    /** Strip HTML + membership-wall boilerplate */
-    private fun stripHtml(html: String): String =
-        html.replace(Regex("<[^>]*>"), "")
-            .replace("\\n", " ")
+    /** Decode all HTML entities + strip tags using Android's Html parser */
+    private fun decodeHtml(html: String): String {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+            } else {
+                @Suppress("DEPRECATION")
+                android.text.Html.fromHtml(html).toString()
+            }
+        } catch (e: Exception) {
+            html.replace(Regex("<[^>]*>"), "")
+        }
+    }
+
+    /** Clean title — decodes &#8217; &#8220; &#8221; &amp; etc. */
+    fun getCleanTitle(): String = decodeHtml(title.rendered).trim()
+
+    /** Strip HTML tags, decode entities, remove membership wall text */
+    private fun stripHtml(html: String): String {
+        return decodeHtml(html)
             .replace(Regex("Membership Required.*", RegexOption.DOT_MATCHES_ALL), "")
             .replace(Regex("You must be a member.*", RegexOption.DOT_MATCHES_ALL), "")
-            .replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&quot;", "\"")
             .replace(Regex("\\s{2,}"), " ")
             .trim()
+    }
 
     fun getCleanExcerpt(): String = stripHtml(excerpt.rendered)
 
     fun getCleanContent(): String = content?.let { stripHtml(it.rendered) } ?: getCleanExcerpt()
+
 
     fun getFormattedDate(): String {
         return try {

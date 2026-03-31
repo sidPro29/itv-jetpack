@@ -142,7 +142,7 @@ fun AppNavigation(
                         detailViewModel = detailViewModel,
                         newsViewModel = newsViewModel,
                         onArticleClick = { articleId ->
-                            navController.navigate("NewsDetail/$articleId") { launchSingleTop = true }
+                            navController.navigate("NewsDetail/$articleId")
                         },
                         onBackClick = { navController.popBackStack() }
                     )

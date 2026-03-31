@@ -273,7 +273,7 @@ fun NewsListCard(article: NewsArticle, onClick: () -> Unit) {
             ) {
                 Column {
                     Text(
-                        text = article.title.rendered,
+                        text = article.getCleanTitle(),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White,
                         maxLines = 2,
@@ -395,7 +395,7 @@ fun RecentPostLink(article: NewsArticle, onClick: () -> Unit) {
                 modifier = Modifier.padding(end = 6.dp, top = 1.dp)
             )
             Text(
-                text = article.title.rendered,
+                text = article.getCleanTitle(),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFFCCCCCC),
                 maxLines = 2,
