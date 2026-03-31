@@ -1,6 +1,7 @@
 package com.notifiy.itv.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.notifiy.itv.data.util.VideoUrlManager
 
 data class AssetResponse(
     val page: Int,
@@ -35,7 +36,7 @@ data class Post(
     val membershipLevel: List<String> get() = _membershipLevel?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 
     fun getDisplayImageUrl(): String = imageUrl ?: ""
-    fun getEffectiveVideoUrl(): String = videoUrl ?: ""
+    fun getEffectiveVideoUrl(): String = VideoUrlManager.fixVideoUrl(videoUrl ?: "")
 }
 
 data class RenderedContent(val rendered: String)

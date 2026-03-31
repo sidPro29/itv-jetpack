@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import android.util.Log
 import androidx.tv.material3.Surface
 import com.notifiy.itv.R
+import com.notifiy.itv.data.util.VideoUrlManager
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 
 @OptIn(UnstableApi::class)
@@ -57,7 +58,7 @@ fun PlayerScreen(
         return
     }
 
-    val currentVideoUrl = videoUrl // Stable reference for smart casting
+    val currentVideoUrl = VideoUrlManager.fixVideoUrl(videoUrl) // Fix IP-based URLs before playback
     val isYouTube = currentVideoUrl.contains("youtube.com") || currentVideoUrl.contains("youtu.be")
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -163,8 +164,8 @@ fun PlayerScreen(
                 }
             }
 
-            LaunchedEffect(videoUrl) {
-                val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
+            LaunchedEffect(currentVideoUrl) {
+                val mediaItem = MediaItem.fromUri(Uri.parse(currentVideoUrl))
                 exoPlayer.setMediaItem(mediaItem)
                 exoPlayer.prepare()
             }
