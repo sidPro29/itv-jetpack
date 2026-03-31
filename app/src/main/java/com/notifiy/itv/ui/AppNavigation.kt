@@ -33,6 +33,10 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun AppNavigation(
@@ -50,6 +54,31 @@ fun AppNavigation(
     
     val dropdownItems = listOf("TV Shows", "Movies", "News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
     var isDropdownOpen by remember { mutableStateOf(false) }
+    
+    val showExpiryPopup by mainViewModel.showExpiryPopup.collectAsState()
+
+    if (showExpiryPopup) {
+        AlertDialog(
+            onDismissRequest = { /* Don't dismiss by clicking outside */ },
+            confirmButton = {
+                androidx.tv.material3.Button(
+                    onClick = { mainViewModel.handleExpiryOk() },
+                    colors = androidx.tv.material3.ButtonDefaults.colors(
+                        containerColor = Color(0xFF0066FF),
+                        focusedContainerColor = Color(0xFF0044BB)
+                    ),
+                    shape = androidx.tv.material3.ButtonDefaults.shape(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                ) {
+                    androidx.tv.material3.Text("OK", color = Color.White)
+                }
+            },
+            title = { androidx.tv.material3.Text("Plan Expired Alert", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { androidx.tv.material3.Text("Your current plan has expired. Please renew to continue enjoying premium content.", color = Color.Gray) },
+            containerColor = Color(0xFF1A1A1A),
+            titleContentColor = Color.White,
+            textContentColor = Color.Gray
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(modifier = Modifier.fillMaxSize()) {

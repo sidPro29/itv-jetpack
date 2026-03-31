@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.notifiy.itv.data.model.ItvPurchase
 import com.notifiy.itv.data.model.Post
+import com.notifiy.itv.data.repository.AuthRepository
 import com.notifiy.itv.data.repository.ItvRepository
 import com.notifiy.itv.data.repository.SessionManager
 import com.notifiy.itv.data.repository.StripeRepository
@@ -31,6 +32,7 @@ data class ProfileUiState(
 class ProfileViewModel @Inject constructor(
     private val itvRepository: ItvRepository,
     private val stripeRepository: StripeRepository,
+    private val authRepository: AuthRepository,
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
@@ -47,6 +49,10 @@ class ProfileViewModel @Inject constructor(
             try {
                 val userName = sessionManager.getUserName()
                 val userEmail = sessionManager.getUserEmail()
+                
+                // Sync latest membership status from WordPress before showing it
+                authRepository.syncMembershipWithWp()
+                
                 val activePlan = sessionManager.fetchActivePlan()
 
                 val watchlistIds = sessionManager.getWatchlist()

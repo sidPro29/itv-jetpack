@@ -22,6 +22,7 @@ import kotlinx.coroutines.delay
 class MainViewModel @Inject constructor(
     private val authRepository: com.notifiy.itv.data.repository.AuthRepository,
     private val itvRepository: com.notifiy.itv.data.repository.ItvRepository,
+    private val stripeRepository: com.notifiy.itv.data.repository.StripeRepository,
     private val sessionManager: com.notifiy.itv.data.repository.SessionManager
 ) : ViewModel() {
 
@@ -33,6 +34,54 @@ class MainViewModel @Inject constructor(
 
     private val _refreshTrigger = MutableStateFlow(0)
     val refreshTrigger = _refreshTrigger.asStateFlow()
+
+    private val _showExpiryPopup = MutableStateFlow(false)
+    val showExpiryPopup = _showExpiryPopup.asStateFlow()
+
+    init {
+        checkPlanExpiry()
+    }
+
+    fun checkPlanExpiry() {
+        if (!authRepository.isLoggedIn()) return
+        
+        viewModelScope.launch {
+            val currentPlanName = sessionManager.fetchActivePlan()
+            if (currentPlanName.isNullOrEmpty()) return@launch
+            
+            val purchases = stripeRepository.getUserPurchases()
+            if (purchases.isEmpty()) return@launch
+            
+            val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val now = java.util.Date()
+            
+            // Collect all plans with this name and check their expiry dates
+            val relevantPurchases = purchases.filter { it.plan_name == currentPlanName && it.status == "Success" }
+            
+            // If ALL purchases for this plan name have expired, then show the popup
+            val isActiveInFirestore = relevantPurchases.any {
+                try {
+                    val expiryDate = dateFormat.parse(it.expiry_date)
+                    expiryDate != null && expiryDate.after(now)
+                } catch (e: Exception) { false }
+            }
+            
+            if (!isActiveInFirestore && relevantPurchases.isNotEmpty()) {
+                _showExpiryPopup.value = true
+            }
+        }
+    }
+
+    fun handleExpiryOk() {
+        viewModelScope.launch {
+            val wpUserId = sessionManager.fetchWpUserId()
+            if (wpUserId != -1L) {
+                authRepository.cancelMembership(wpUserId)
+            }
+            _showExpiryPopup.value = false
+            updateLoginStatus() // Refresh UI
+        }
+    }
 
     fun updateLoginStatus() {
         _isLoggedIn.value = authRepository.isLoggedIn()

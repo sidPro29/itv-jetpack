@@ -48,15 +48,16 @@ class PlansViewModel @Inject constructor(
             selectedBillingCycle = if (it.selectedBillingCycle == "Monthly") "Yearly" else "Monthly"
         ) }
     }
-
     fun purchasePlan(plan: ItvPlan) {
         viewModelScope.launch {
             _uiState.update { it.copy(isPaymentProcessing = true, error = null, selectedPlan = plan) }
             
-            // Check if already active on server/Firestore
-            val isAlreadyActive = stripeRepository.hasActivePlan(plan.name)
-            if (isAlreadyActive) {
-                _uiState.update { it.copy(isPaymentProcessing = false, error = "You already have an active ${plan.name} plan.") }
+            // Checks for already active plan (both WP and Firestore)
+            val currentWpPlan = sessionManager.fetchActivePlan()
+            val isAlreadyActiveInFirestore = stripeRepository.hasActivePlan(plan.name)
+            
+            if (currentWpPlan == plan.name || isAlreadyActiveInFirestore) {
+                _uiState.update { it.copy(isPaymentProcessing = false, error = "You already have this plan, choose other") }
                 return@launch
             }
 

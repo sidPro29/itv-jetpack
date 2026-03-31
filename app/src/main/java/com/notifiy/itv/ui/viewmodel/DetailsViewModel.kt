@@ -101,7 +101,8 @@ class DetailsViewModel @Inject constructor(
         val membershipList = currentPost.membershipLevel
         
         // Rule: If empty or contains "free", anyone can watch
-        if (membershipList.isEmpty() || membershipList.any { it.equals("free", ignoreCase = true) }) {
+        if (currentPost.membershipLevel.isEmpty() ||
+            currentPost.membershipLevel.any { it.contains("free", ignoreCase = true) }) {
             return true
         }
         

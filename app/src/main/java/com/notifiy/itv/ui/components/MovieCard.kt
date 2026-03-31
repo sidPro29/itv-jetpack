@@ -72,7 +72,8 @@ fun MovieCard(
                 )
 
                 // Crown Icon for Premium Content
-                val isFree = post.membershipLevel.isEmpty() ||
+                val isFree =
+                    post.membershipLevel.isEmpty() ||
                                 post.membershipLevel.any { it.contains("free", ignoreCase = true) }
                 
                 if (!isFree) {

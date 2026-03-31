@@ -2,6 +2,9 @@ package com.notifiy.itv.data.repository
 
 import com.notifiy.itv.data.model.ItvUser
 import com.notifiy.itv.data.model.LoginResponse
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.notifiy.itv.data.model.MembershipLevel
 import com.notifiy.itv.data.model.WpSignupRequest
 import com.notifiy.itv.data.remote.ApiService
 import javax.inject.Inject
@@ -71,6 +74,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
+
     suspend fun syncMembershipWithWp() {
         val wpToken = sessionManager.fetchWpToken()
         if (wpToken == null) {
@@ -88,25 +92,56 @@ class AuthRepository @Inject constructor(
             
             // Step 2: Get Membership using that WP User ID
 
-            // Using admin token if needed (as in old code) to ensure bypass restrictions
+            // Try to log in with admin to ensure permissions to see other users' data
+            // Consistently using 'siddhartha.verma' which was working in StripeRepository
             val adminLoginRes = try {
-                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddharthav6213@proton.me", "Sidh@6213#"))
-            } catch (e: Exception) { null }
+                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+            } catch (e: Exception) { 
+                android.util.Log.e("siddharthaLogs", "Admin login in syncMembership failed: ${e.message}")
+                null 
+            }
             
             val fetchHeader = adminLoginRes?.token?.let { "Bearer $it" } ?: authHeader
             
             val response = apiService.getMembershipForUser(fetchHeader, wpUser.id)
             if (response.isSuccessful) {
                 val jsonString = response.body()?.string() ?: ""
-                android.util.Log.d(TAG, "Membership JSON: $jsonString")
+                android.util.Log.d(TAG, "Membership JSON response: $jsonString")
                 
-                if (jsonString.contains("\"name\":\"")) {
-                    val planName = jsonString.substringAfter("\"name\":\"").substringBefore("\"")
-                    android.util.Log.d(TAG, "Plan found -> $planName")
-                    sessionManager.updateActivePlan(planName)
-                } else {
+                if (jsonString.isNullOrBlank() || jsonString == "false" || jsonString == "[]") {
+                    android.util.Log.d(TAG, "No plan found for user ${wpUser.id}")
                     sessionManager.updateActivePlan("")
+                } else {
+                    val gson = Gson()
+                    var planNameFound: String? = null
+                    
+                    try {
+                        // Case 1: Response is a single MembershipLevel object
+                        val level = gson.fromJson(jsonString, MembershipLevel::class.java)
+                        if (level?.name != null) planNameFound = level.name
+                    } catch (e: Exception) {
+                        try {
+                            // Case 2: Response is a list of MembershipLevel objects
+                            val listType = object : TypeToken<List<MembershipLevel>>() {}.type
+                            val levels: List<MembershipLevel> = gson.fromJson(jsonString, listType)
+                            if (levels.isNotEmpty()) planNameFound = levels[0].name
+                        } catch (e2: Exception) {
+                            // Case 3: Fallback manual extract
+                            if (jsonString.contains("\"name\":\"")) {
+                                planNameFound = jsonString.substringAfter("\"name\":\"").substringBefore("\"")
+                            }
+                        }
+                    }
+                    
+                    if (planNameFound != null) {
+                        android.util.Log.d(TAG, "Plan Name Sync -> $planNameFound")
+                        sessionManager.updateActivePlan(planNameFound)
+                    } else {
+                        sessionManager.updateActivePlan("")
+                    }
                 }
+            } else {
+                 android.util.Log.e(TAG, "Failed calling PMPro API: ${response.code()}")
             }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error during direct membership sync: ${e.message}")
@@ -125,5 +160,21 @@ class AuthRepository @Inject constructor(
     fun getCurrentUserUid(): String? {
         // Return WP Token or some identifier from sessionManager
         return sessionManager.fetchAuthToken()
+    }
+
+    suspend fun cancelMembership(wpUserId: Long): Boolean {
+        return try {
+            val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+            val adminToken = adminLoginRes.token ?: return false
+            val authHeader = "Bearer $adminToken"
+            
+            val response = apiService.changeMembershipLevel(authHeader, "0", wpUserId)
+            if (response.isSuccessful) {
+                sessionManager.updateActivePlan("")
+                true
+            } else false
+        } catch (e: Exception) {
+            false
+        }
     }
 }
