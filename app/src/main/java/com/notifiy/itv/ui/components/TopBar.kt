@@ -39,8 +39,8 @@ fun TopBar(
     activePlan: String?,
     onProfileClick: () -> Unit = {}
 ) {
-    val tabs = listOf("Home", "News", "All", "TV Shows", "Movies", "Plans & Advertise")
-    val dropdownItems = listOf("News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
+    val tabs = listOf("Home", "News", "All", "Plans & Advertise")
+    val dropdownItems = listOf("TV Shows", "Movies", "News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
 
     Row(
         modifier = Modifier

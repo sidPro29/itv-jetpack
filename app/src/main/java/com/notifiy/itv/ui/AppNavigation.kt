@@ -48,7 +48,7 @@ fun AppNavigation(
     val activePlan by mainViewModel.activePlan.collectAsState()
     val refreshTrigger by mainViewModel.refreshTrigger.collectAsState()
     
-    val dropdownItems = listOf("News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
+    val dropdownItems = listOf("TV Shows", "Movies", "News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
     var isDropdownOpen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
@@ -67,7 +67,7 @@ fun AppNavigation(
                                 popUpTo("Home")
                                 launchSingleTop = true
                             }
-                        } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans & Advertise") {
+                        } else if (tab == "Home" || tab == "Plans & Advertise") {
                            isDropdownOpen = false
                            val targetRoute = if (tab == "Plans & Advertise") "Plans" else tab
                            navController.navigate(targetRoute) {
