@@ -45,7 +45,7 @@ fun ProfileScreen(
     var selectedTab by remember { mutableStateOf("Watchlist") }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Logout")
+    val tabs = listOf("Watchlist", "Playlist", "Liked", "Purchases", "Contact Us", "Logout")
 
     Column(
         modifier = Modifier
@@ -56,77 +56,86 @@ fun ProfileScreen(
         // Profile Card
         Surface(
             onClick = { /* Account details */ },
-            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.005f),
+            scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
             border = ClickableSurfaceDefaults.border(
-                focusedBorder = Border(androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0066FF)))
+                focusedBorder = Border(androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF0066FF)))
             ),
             colors = ClickableSurfaceDefaults.colors(
-                containerColor = Color(0xFF111111),
+                containerColor = Color(0xFF111116),
                 contentColor = Color.White,
-                focusedContainerColor = Color(0xFF111111)
+                focusedContainerColor = Color(0xFF1A1A24)
             ),
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
+            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(130.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 36.dp),
                 verticalAlignment = Alignment.CenterVertically
             )
             {
-                // Profile Avatar Placeholder
+                // Profile Avatar
                 Box(
                     modifier = Modifier
-                        .size(70.dp)
+                        .size(76.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE0E0E0)),
+                        .background(Color(0xFF2A2A3A)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         modifier = Modifier.size(50.dp),
-                        tint = Color.Gray
+                        tint = Color(0xFF888899)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(32.dp))
+                Spacer(modifier = Modifier.width(28.dp))
 
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = uiState.userName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White
+                        text = uiState.userName.ifBlank { "User Profile" },
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        fontSize = 24.sp
                     )
                     Text(
                         text = uiState.userEmail,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.LightGray.copy(alpha = 0.8f)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFAAAAAA)
                     )
-                    Text(
-                        text = if (uiState.activePlan != null) "Current Plan : ${uiState.activePlan}" else "No active plan",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF0066FF),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(if (uiState.activePlan != null) Color(0xFF00FF88) else Color.Gray, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (uiState.activePlan != null) "Plan: ${uiState.activePlan} (Active)" else "No active plan",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (uiState.activePlan != null) Color(0xFF00FF88) else Color.Gray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
                 Surface(
                     onClick = { /* Edit Profile */ },
                     scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
                     colors = ClickableSurfaceDefaults.colors(
-                        containerColor = Color(0xFF0044BB),
+                        containerColor = Color(0xFF0055DD),
                         contentColor = Color.White,
-                        focusedContainerColor = Color(0xFF0055DD)
+                        focusedContainerColor = Color(0xFF0077FF)
                     ),
-                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
-                    modifier = Modifier.height(33.dp)
+                    shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
+                    modifier = Modifier.height(38.dp)
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxHeight().padding(horizontal = 12.dp),
+                        modifier = Modifier.fillMaxHeight().padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -136,10 +145,10 @@ fun ProfileScreen(
                                 modifier = Modifier.size(18.dp),
                                 tint = Color.White
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 "Edit Profile",
-                                style = MaterialTheme.typography.bodySmall
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -170,23 +179,23 @@ fun ProfileScreen(
                         },
                         scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
                         colors = ClickableSurfaceDefaults.colors(
-                            containerColor = if (isSelected) Color(0xFF0033AA) else Color(0xFF151515),
-                            focusedContainerColor = Color(0xFF0044BB),
+                            containerColor = if (isSelected) Color(0xFF0055DD) else Color(0xFF161622),
+                            focusedContainerColor = Color(0xFF0077FF),
                             contentColor = Color.White,
                             focusedContentColor = Color.White
                         ),
-                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+                        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(10.dp)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(52.dp)
                     ) {
                         Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize()
+                            contentAlignment = Alignment.CenterStart,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp)
                         ) {
                             Text(
                                 text = tab,
-                                style = MaterialTheme.typography.labelLarge.copy(
+                                style = MaterialTheme.typography.bodyLarge.copy(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             )
@@ -198,9 +207,11 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.width(32.dp))
 
             // Right Content Area
-            Column(modifier = Modifier.weight(1f)) {
-                if (selectedTab != "Purchases") {
-                    CategorizedContent(
+            Column(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                when (selectedTab) {
+                    "Purchases" -> PurchasesContent(uiState.purchases, uiState.activePlan)
+                    "Contact Us" -> ContactUsContent()
+                    else -> CategorizedContent(
                         items = when (selectedTab) {
                             "Playlist" -> uiState.playlist
                             "Liked" -> uiState.liked
@@ -210,8 +221,6 @@ fun ProfileScreen(
                         tabName = selectedTab,
                         onMovieClick = onMovieClick
                     )
-                } else {
-                    PurchasesContent(uiState.purchases, uiState.activePlan)
                 }
             }
         }
@@ -429,6 +438,75 @@ fun PurchasesContent(purchases: List<ItvPurchase>, activePlan: String?) {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun ContactUsContent() {
+    Column {
+        Text(
+            "Contact Us",
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            "We are here to help! Whether you have a question, need support, or want to provide feedback.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color(0xFFAAAAAA),
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            // Email Card
+            Surface(
+                onClick = {},
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = Color(0xFF161622),
+                    focusedContainerColor = Color(0xFF1F1F33),
+                    contentColor = Color.White
+                ),
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+                modifier = Modifier.weight(1f).height(140.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("✉️", fontSize = 32.sp, modifier = Modifier.padding(bottom = 12.dp))
+                    Text("Email Us", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("info@interplanetary.tv", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF0066FF))
+                }
+            }
+
+            // Phone Card
+            Surface(
+                onClick = {},
+                scale = ClickableSurfaceDefaults.scale(focusedScale = 1.05f),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = Color(0xFF161622),
+                    focusedContainerColor = Color(0xFF1F1F33),
+                    contentColor = Color.White
+                ),
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(16.dp)),
+                modifier = Modifier.weight(1f).height(140.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("📞", fontSize = 32.sp, modifier = Modifier.padding(bottom = 12.dp))
+                    Text("Call Us", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text("+37123112488", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF00FF88))
                 }
             }
         }

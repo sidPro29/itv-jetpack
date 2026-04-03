@@ -63,7 +63,6 @@ data class NewsArticle(
         }
     }
 
-    /** Returns post_tag terms only */
     fun getTags(): List<String> {
         return embedded?.terms
             ?.flatten()
@@ -71,13 +70,24 @@ data class NewsArticle(
             ?.map { it.name }
             ?: emptyList()
     }
+
+    fun getAuthorName(): String {
+        return embedded?.author?.firstOrNull()?.name ?: "Interplanetary Team"
+    }
 }
 
 data class NewsEmbedded(
+    @SerializedName("author")
+    val author: List<WpAuthor>?,
     @SerializedName("wp:featuredmedia")
     val featuredMedia: List<FeaturedMedia>?,
     @SerializedName("wp:term")
     val terms: List<List<WpTerm>>?
+)
+
+data class WpAuthor(
+    val id: Int,
+    val name: String
 )
 
 data class WpTerm(

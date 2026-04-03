@@ -292,7 +292,7 @@ fun NewsListCard(article: NewsArticle, onClick: () -> Unit) {
                         )
                     }
                 }
-                // Date + category row
+                // Date + author + category row
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "📅 ${article.getFormattedDate()}",
@@ -302,9 +302,16 @@ fun NewsListCard(article: NewsArticle, onClick: () -> Unit) {
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
+                        text = "✍️ ${article.getAuthorName()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF888888),
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
                         text = "NEWS",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF888888),
+                        color = Color(0xFF444444),
                         fontSize = 11.sp
                     )
                 }
