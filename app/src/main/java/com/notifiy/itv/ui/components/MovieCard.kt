@@ -39,7 +39,8 @@ fun MovieCard(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     Column(
-        modifier = modifier.width(width),
+        modifier = modifier
+            .width(width),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
@@ -57,7 +58,8 @@ fun MovieCard(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(aspectRatio)
+                .aspectRatio(16/9f)
+//                .aspectRatio(aspectRatio)
                 .padding(8.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -67,7 +69,7 @@ fun MovieCard(
                         .crossfade(true)
                         .build(),
                     contentDescription = post.title.rendered,
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.FillBounds,
                     modifier = Modifier.fillMaxSize()
                 )
 
