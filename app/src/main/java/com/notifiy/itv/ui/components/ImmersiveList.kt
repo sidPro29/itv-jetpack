@@ -26,7 +26,6 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.notifiy.itv.data.model.Post
-import com.notifiy.itv.ui.components.MovieCard
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
@@ -36,10 +35,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import com.notifiy.itv.ui.theme.Background
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ImmersiveList(
     title: String,
@@ -69,12 +73,8 @@ fun ImmersiveList(
             .clipToBounds()
     ) {
         // Background Image (Always present as fallback/underlay)
-        val imageUrl = focusedItem?.let { post ->
-            post.portraitImage?.large?.takeIf { it.isNotEmpty() }
-                ?: post.portraitImage?.full?.takeIf { it.isNotEmpty() }
-                ?: post._embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-                ?: post.portraitPoster
-        }
+        val imageUrl = focusedItem?.portraitPoster
+
 
         if (imageUrl != null) {
             AsyncImage(
@@ -142,9 +142,19 @@ fun ImmersiveList(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(end = 50.dp, start = 25.dp),
-                modifier = Modifier.onFocusChanged { focusState ->
-                    isListFocused = focusState.hasFocus
-                }
+                modifier = Modifier
+                    .onFocusChanged { focusState ->
+                        isListFocused = focusState.hasFocus
+                    }
+                    .focusProperties {
+                        exit = { direction ->
+                            if (direction == FocusDirection.Right || direction == FocusDirection.Next) {
+                                FocusRequester.Cancel
+                            } else {
+                                FocusRequester.Default
+                            }
+                        }
+                    }
             ) {
                 items(items) { post ->
                     MovieCard(

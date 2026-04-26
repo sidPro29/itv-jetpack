@@ -3,71 +3,40 @@ package com.notifiy.itv.data.model
 import com.google.gson.annotations.SerializedName
 import com.notifiy.itv.data.util.VideoUrlManager
 
-data class Post(
-    val id: Int,
-    val title: Rendered,
-    val content: Rendered,
-    val excerpt: Rendered,
-    val date: String,
-    val link: String,
-    @SerializedName("featured_media") val featuredMedia: Int,
-    
-    // Custom fields
-    @SerializedName("video_url") val videoUrl: String?,
-    @SerializedName("video_embed") val videoEmbed: String?,
-    @SerializedName("video_choice") val videoChoice: String?,
-    @SerializedName("portrait_poster") val portraitPoster: String?,
-    @SerializedName("portrait_image") val portraitImage: PortraitImage?,
-    @SerializedName("membership_level") val membershipLevel: List<String>?,
-    val subtitles: List<Subtitle>?,
-    val _embedded: Embedded?
-) {
-    fun getDisplayImageUrl(): String {
-        return portraitImage?.medium?.let { if (it.isNotEmpty()) it else null }
-            ?: portraitPoster?.let { if (it.isNotEmpty()) it else null }
-            ?: _embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-            ?: ""
-    }
+data class AssetResponse(
+    val page: Int,
+    @SerializedName("per_page")
+    val perPage: Int,
+    val total: Int,
+    @SerializedName("total_pages")
+    val totalPages: Int,
+    val results: List<Post>
+)
 
-    fun getEffectiveVideoUrl(): String {
-        return VideoUrlManager.getVideoUrl(id, videoUrl)
-    }
+data class Post(
+    @SerializedName("asset_id")
+    val id: Int,
+    val category: String, // video, movie, tvshow
+    @SerializedName("imageUrl")
+    val imageUrl: String?,
+    @SerializedName("videoUrl")
+    val videoUrl: String?,
+    @SerializedName("title")
+    private val _title: String?,
+    val description: String?,
+    val tag: String?,
+    val genre: String?,
+    @SerializedName("membership_level")
+    private val _membershipLevel: String? // comma separated string like "20354, 20353"
+) {
+    val title: RenderedContent get() = RenderedContent(_title ?: "")
+    
+    // UI backward compatibility
+    val portraitPoster: String get() = imageUrl ?: ""
+    val membershipLevel: List<String> get() = _membershipLevel?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+
+    fun getDisplayImageUrl(): String = imageUrl ?: ""
+    fun getEffectiveVideoUrl(): String = VideoUrlManager.fixVideoUrl(videoUrl ?: "")
 }
 
-data class Rendered(
-    val rendered: String
-)
-
-data class PortraitImage(
-    val id: Int,
-    val full: String,
-    val large: String,
-    val medium: String,
-    val thumbnail: String
-)
-
-data class Subtitle(
-    @SerializedName("file_url") val fileUrl: String,
-    val language: String
-)
-
-data class Embedded(
-    @SerializedName("wp:featuredmedia") val featuredMedia: List<FeaturedMedia>?,
-    val author: List<Author>?
-)
-
-data class FeaturedMedia(
-    @SerializedName("source_url") val sourceUrl: String
-)
-
-data class Author(
-    val id: Int,
-    val name: String,
-    @SerializedName("avatar_urls") val avatarUrls: AvatarUrls
-)
-
-data class AvatarUrls(
-    @SerializedName("96") val small: String,
-    @SerializedName("48") val medium: String,
-    @SerializedName("24") val large: String
-)
+data class RenderedContent(val rendered: String)

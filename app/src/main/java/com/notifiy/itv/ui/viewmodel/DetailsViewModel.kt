@@ -50,14 +50,14 @@ class DetailsViewModel @Inject constructor(
             val tvShows = repository.getTVShows()
             val allPosts = movies + videos + tvShows
             
-            // Fetch tags from Firebase
-            val firebasePosts = repository.getFirebasePosts()
-            val matchedFirebasePost = firebasePosts?.find { it.first.id == postId }
+            // Fetch mapped assets from Repository (which now uses WP only)
+            val mappedPosts = repository.getAllAssetsWithTags()
+            val matchedPost = mappedPosts.find { it.first.id == postId }
             
-            if (matchedFirebasePost != null) {
-                _post.value = matchedFirebasePost.first
+            if (matchedPost != null) {
+                _post.value = matchedPost.first
                 // The second item in the pair is the list of tags
-                val tagsList = matchedFirebasePost.second
+                val tagsList = matchedPost.second
                     .filter { it.isNotBlank() }
                     .map { it.trim() }
                     .distinct()
@@ -65,7 +65,7 @@ class DetailsViewModel @Inject constructor(
                 _postTags.value = tagsList.joinToString(" • ")
             } else {
                 _post.value = allPosts.find { it.id == postId }
-                _postTags.value = "Science • News • Space" // Fallback
+                _postTags.value = "Category • Genre" // Fallback
             }
             
             _recommendedMovies.value = movies.shuffled().take(10)
@@ -96,24 +96,20 @@ class DetailsViewModel @Inject constructor(
 
     fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
 
-    fun updateAsset(
-        assetId: String,
-        title: String,
-        videoUrl: String,
-        imageUrl: String,
-        membershipLevel: String,
-        rowName: String,
-        tags: String,
-        onComplete: () -> Unit
-    ) {
-        viewModelScope.launch {
-            repository.updateAssetInFirebase(assetId, title, videoUrl, imageUrl, membershipLevel, rowName, tags)
-            loadDetails(assetId.toIntOrNull() ?: 0)
-            onComplete()
+    fun canWatch(): Boolean {
+        val currentPost = _post.value ?: return false
+        val membershipList = currentPost.membershipLevel
+        
+        // Rule: If empty or contains "free", anyone can watch
+        if (currentPost.membershipLevel.isEmpty() ||
+            currentPost.membershipLevel.any { it.contains("free", ignoreCase = true) }) {
+            return true
         }
+        
+        // Else: Check if user has an active plan
+        val plan = sessionManager.fetchActivePlan()
+        return !plan.isNullOrEmpty()
     }
 
-    suspend fun getFirebaseAssetRaw(assetId: Int): Map<String, Any>? {
-        return repository.getFirebaseAssetRaw(assetId)
-    }
 }
+

@@ -150,7 +150,7 @@ fun FilterTabs(
     selectedFilter: String,
     onFilterSelected: (String) -> Unit
 ) {
-    val filters = listOf("All", "Tvshow", "Video", "Episode")
+    val filters = listOf("All", "Tvshow", "Video", "Movie")
     
     Row(verticalAlignment = Alignment.CenterVertically) {
         filters.forEach { filter ->
@@ -193,10 +193,8 @@ fun SearchCard(
     post: Post,
     onClick: () -> Unit
 ) {
-     val imageUrl = post.portraitImage?.medium?.takeIf { it.isNotEmpty() }
-        ?: post.portraitPoster?.takeIf { it.isNotEmpty() }
-        ?: post._embedded?.featuredMedia?.firstOrNull()?.sourceUrl
-        ?: ""
+    val imageUrl = post.portraitPoster ?: ""
+
         
     Surface(
         onClick = onClick,
@@ -211,14 +209,14 @@ fun SearchCard(
         border = ClickableSurfaceDefaults.border(
             focusedBorder = Border(BorderStroke(3.dp, Color.LightGray))
         ),
-        modifier = Modifier.width(200.dp)
+        modifier = Modifier.width(150.dp)
     ) {
 //        Column {
             // Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(4/5f)
+                    .aspectRatio(16/9f)
                     .background(Color.DarkGray, RoundedCornerShape(8.dp))
             ) {
                 AsyncImage(
@@ -227,7 +225,7 @@ fun SearchCard(
                         .crossfade(true)
                         .build(),
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.FillBounds,
                     modifier = Modifier.fillMaxSize()
                 )
             }

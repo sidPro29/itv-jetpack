@@ -8,19 +8,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.foundation.PivotOffsets
 import androidx.tv.foundation.lazy.list.TvLazyColumn
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
 import com.notifiy.itv.data.model.Post
 import com.notifiy.itv.ui.components.ImmersiveList
 import com.notifiy.itv.ui.components.MovieCard
 import com.notifiy.itv.ui.theme.Background
 import com.notifiy.itv.ui.viewmodel.HomeViewModel
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+
 
 @Composable
 fun HomeScreen(
@@ -50,7 +55,7 @@ fun HomeScreen(
             if (state.liveTv.isNotEmpty()) {
                 item { 
                     ImmersiveList(
-                        title = "LiveTV", 
+                        title = "Live TV", 
                         items = state.liveTv, 
                         onItemClick = onMovieClick
                     ) 
@@ -66,37 +71,36 @@ fun HomeScreen(
                 item { Section(title = "Binge Videos", items = state.bingeVideos, onClick = onMovieClick) }
             }
             if (state.bingeEpicSeries.isNotEmpty()) {
-                item { Section(title = "Binge- Epic series", items = state.bingeEpicSeries, onClick = onMovieClick) }
+                item { Section(title = "Binge-Epic Series", items = state.bingeEpicSeries, onClick = onMovieClick) }
             }
             if (state.mustWatchSpaceEpic.isNotEmpty()) {
-                item { Section(title = "Must-watch space epic", items = state.mustWatchSpaceEpic, onClick = onMovieClick) }
+                item { Section(title = "Must-Watch Space Epics", items = state.mustWatchSpaceEpic, onClick = onMovieClick) }
             }
             if (state.spaceToGround.isNotEmpty()) {
-                item { Section(title = "space-to-ground Report", items = state.spaceToGround, onClick = onMovieClick) }
-            }
-            if (state.sciFiUniverse.isNotEmpty()) {
-                item { Section(title = "The sci-fi universe", items = state.sciFiUniverse, onClick = onMovieClick) }
+                item { Section(title = "Space-to-Ground Report", items = state.spaceToGround, onClick = onMovieClick) }
             }
             if (state.news.isNotEmpty()) {
                 item { Section(title = "News", items = state.news, onClick = onMovieClick) }
             }
             if (state.talkShows.isNotEmpty()) {
-                item { Section(title = "Talk show", items = state.talkShows, onClick = onMovieClick) }
+                item { Section(title = "Talk-Shows", items = state.talkShows, onClick = onMovieClick) }
             }
             if (state.documentarySeries.isNotEmpty()) {
-                item { Section(title = "Doccumentry series", items = state.documentarySeries, onClick = onMovieClick) }
+                item { Section(title = "Documentary Series", items = state.documentarySeries, onClick = onMovieClick) }
             }
             if (state.documentaryFilms.isNotEmpty()) {
-                item { Section(title = "Documentry Film", items = state.documentaryFilms, onClick = onMovieClick) }
+                item { Section(title = "Documentary Film", items = state.documentaryFilms, onClick = onMovieClick) }
             }
             if (state.scienceFiction.isNotEmpty()) {
-                item { Section(title = "Science Fiction", items = state.scienceFiction, onClick = onMovieClick) }
+                item { Section(title = "Science-Fiction", items = state.scienceFiction, onClick = onMovieClick) }
             }
+
         }
     }
 }
 
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Section(
     title: String,
@@ -113,9 +117,19 @@ fun Section(
             color = MaterialTheme.colorScheme.onBackground
         )
         LazyRow(
+            modifier = Modifier.focusProperties {
+                exit = { direction ->
+                    if (direction == FocusDirection.Right || direction == FocusDirection.Next) {
+                        FocusRequester.Cancel
+                    } else {
+                        FocusRequester.Default
+                    }
+                }
+            },
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(end = 50.dp, start = 25.dp)
         ) {
+
             items(items) { post ->
                 MovieCard(
                     post = post, 
@@ -127,3 +141,4 @@ fun Section(
         }
     }
 }
+

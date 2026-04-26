@@ -1,27 +1,46 @@
 package com.notifiy.itv.data.remote
 
+import com.notifiy.itv.data.model.NewsArticle
 import com.notifiy.itv.data.model.Post
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("streamit/v1/videos")
-    suspend fun getVideos(
-        @Query("page") page: Int = 1,
-        @Query("per_page") perPage: Int = 700
-    ): List<Post>
 
-    @GET("streamit/v1/movies")
-    suspend fun getMovies(
+    @GET("wp/v2/posts")
+    suspend fun getNewsArticles(
+        @Query("categories") categories: Int = 10794,
+        @Query("per_page") perPage: Int = 20,
         @Query("page") page: Int = 1,
-        @Query("per_page") perPage: Int = 100
-    ): List<Post>
+        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
+    ): List<NewsArticle>
 
-    @GET("streamit/v1/tvshows")
-    suspend fun getTVShows(
-        @Query("page") page: Int = 1,
-        @Query("per_page") perPage: Int = 100
-    ): List<Post>
+    @GET("wp/v2/posts")
+    suspend fun searchNewsArticles(
+        @Query("search") query: String,
+        @Query("categories") categories: Int = 10794,
+        @Query("per_page") perPage: Int = 10,
+        @Query("_embed") embed: String = "wp:featuredmedia",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
+    ): List<NewsArticle>
+
+    @GET("wp/v2/posts/{id}")
+    suspend fun getNewsArticleById(
+        @retrofit2.http.Path("id") id: Int,
+        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded,_links"
+    ): NewsArticle
+
+    @GET("custom-streamit/v1/videos")
+    suspend fun getVideos(): com.notifiy.itv.data.model.AssetResponse
+
+    @GET("custom-streamit/v1/movies")
+    suspend fun getMovies(): com.notifiy.itv.data.model.AssetResponse
+
+    @GET("custom-streamit/v1/tvshows")
+    suspend fun getTVShows(): com.notifiy.itv.data.model.AssetResponse
+
 
     @retrofit2.http.POST("jwt-auth/v1/token")
     suspend fun login(
@@ -43,6 +62,19 @@ interface ApiService {
         @retrofit2.http.Header("Authorization") authHeader: String,
         @retrofit2.http.Query("user_id") userId: Long
     ): retrofit2.Response<okhttp3.ResponseBody>
+    
+    @retrofit2.http.GET("pmpro/v1/membership_levels")
+    suspend fun getMembershipLevels(
+        @retrofit2.http.Header("Authorization") authHeader: String
+    ): retrofit2.Response<Map<String, com.notifiy.itv.data.model.MembershipLevel>>
+
+    
+    @retrofit2.http.GET("pmpro/v1/get_orders")
+    suspend fun getOrders(
+        @retrofit2.http.Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("user_id") userId: Long
+    ): retrofit2.Response<okhttp3.ResponseBody>
+
 
     @retrofit2.http.FormUrlEncoded
     @retrofit2.http.POST("pmpro/v1/change_membership_level")

@@ -47,7 +47,6 @@ import com.notifiy.itv.ui.components.MovieCard
 import com.notifiy.itv.ui.viewmodel.DetailsViewModel
 
 @OptIn(ExperimentalTvMaterial3Api::class)
-
 @Composable
 fun DetailsScreen(
     id: Int,
@@ -69,15 +68,6 @@ fun DetailsScreen(
     val recommendedMovies by viewModel.recommendedMovies.collectAsState()
     val upcomingMovies by viewModel.upcomingMovies.collectAsState()
     val context = LocalContext.current
-
-    var showUpdateForm by remember { mutableStateOf(false) }
-    var rawData by remember { mutableStateOf<Map<String, Any>?>(null) }
-
-    LaunchedEffect(showUpdateForm) {
-        if (showUpdateForm) {
-            rawData = viewModel.getFirebaseAssetRaw(id)
-        }
-    }
 
     LaunchedEffect(id) {
         viewModel.loadDetails(id)
@@ -127,6 +117,15 @@ fun DetailsScreen(
                         color = Color.LightGray
                     )
                     
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
                     Spacer(modifier = Modifier.height(16.dp))
 
                       Text(
@@ -137,19 +136,6 @@ fun DetailsScreen(
                           overflow = TextOverflow.Ellipsis
                       )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-//                    Row(
-//                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        Text(post?.date?.take(4) ?: "2024", color = Color.White, fontWeight = FontWeight.Bold)
-//                        Text("2h: 30m", color = Color.White, fontWeight = FontWeight.Bold)
-//                        Text("452 views", color = Color.White, fontWeight = FontWeight.Bold)
-//                        Text("8.3 IMDb", color = Color.Yellow, fontWeight = FontWeight.Bold)
-//                        Text("PG", color = Color.Gray, fontWeight = FontWeight.Bold)
-//                    }
-
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("🗣️ English (UK)", color = Color.White, fontSize = 14.sp)
 
@@ -159,11 +145,8 @@ fun DetailsScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val membershipContainsFree = post?.membershipLevel?.any { it.equals("free", ignoreCase = true) } == true
-                        val canPlay = membershipContainsFree || !activePlan.isNullOrEmpty()
-
                         if (isVideoAvailable) {
-                            if (canPlay) {
+                            if (viewModel.canWatch()) {
                                 Button(
                                     onClick = onPlayClick,
                                     colors = ButtonDefaults.colors(
@@ -172,7 +155,7 @@ fun DetailsScreen(
                                     ),
                                     modifier = Modifier.padding(end = 8.dp)
                                 ) {
-                                    Text("▶ Play to Watch", fontWeight = FontWeight.Bold)
+                                    Text("▶ Click now to Watch", fontWeight = FontWeight.Bold)
                                 }
                             } else {
                                 Button(
@@ -187,6 +170,7 @@ fun DetailsScreen(
                                 }
                             }
                         }
+
 
                         // Circular buttons
                         Button(
@@ -227,17 +211,6 @@ fun DetailsScreen(
                         ) {
                             Text("🔗", fontSize = 18.sp)
                         }
-
-                        if (com.notifiy.itv.BuildConfig.DEBUG && viewModel.isLoggedIn()) {
-                            Button(
-                                onClick = { showUpdateForm = true },
-                                shape = ButtonDefaults.shape(CircleShape),
-                                modifier = Modifier.size(48.dp),
-                                contentPadding = PaddingValues(top = 7.dp)
-                            ) {
-                                Text("✏️", fontSize = 18.sp)
-                            }
-                        }
                     }
                 }
             }
@@ -263,129 +236,7 @@ fun DetailsScreen(
                 }
             }
         }
-
-        if (showUpdateForm) {
-            val membershipLevelRaw = rawData?.get("membership_level")
-            val firstLevel = when (membershipLevelRaw) {
-                is List<*> -> membershipLevelRaw.firstOrNull()?.toString() ?: ""
-                is Map<*, *> -> membershipLevelRaw["name"]?.toString() ?: ""
-                is String -> membershipLevelRaw
-                else -> post?.membershipLevel?.firstOrNull() ?: ""
-            }
-            
-            val tagsRaw = rawData?.get("tags")
-            val tagsString = when (tagsRaw) {
-                is List<*> -> tagsRaw.joinToString(", ")
-                is String -> tagsRaw
-                else -> ""
-            }
-
-            UpdateAssetDialog(
-                initialTitle = rawData?.get("title")?.toString() ?: post?.title?.rendered ?: title,
-                initialVideoUrl = rawData?.get("videoUrl")?.toString() ?: post?.videoUrl ?: "",
-                initialImageUrl = rawData?.get("imageUrl")?.toString() ?: post?.portraitPoster ?: "",
-                initialMembership = firstLevel,
-                initialRowName = rawData?.get("row_name")?.toString() ?: "",
-                initialTags = tagsString,
-                onDismiss = { showUpdateForm = false },
-                onUpdate = { t, v, i, m, r, tag ->
-                    viewModel.updateAsset(id.toString(), t, v, i, m, r, tag) {
-                        showUpdateForm = false
-                        android.widget.Toast.makeText(context, "Asset Updated Successfully", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            )
-        }
     }
 }
 
-@Composable
-fun UpdateAssetDialog(
-    initialTitle: String,
-    initialVideoUrl: String,
-    initialImageUrl: String,
-    initialMembership: String,
-    initialRowName: String,
-    initialTags: String,
-    onDismiss: () -> Unit,
-    onUpdate: (String, String, String, String, String, String) -> Unit
-) {
-    var title by remember { mutableStateOf(initialTitle) }
-    var videoUrl by remember { mutableStateOf(initialVideoUrl) }
-    var imageUrl by remember { mutableStateOf(initialImageUrl) }
-    var membership by remember { mutableStateOf(initialMembership) }
-    var rowName by remember { mutableStateOf(initialRowName) }
-    var tags by remember { mutableStateOf(initialTags) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.85f) // Limit height to ensure it fits TV screen
-                .background(Color(0xFF1A1A1A), RoundedCornerShape(16.dp))
-                .padding(24.dp)
-        ) {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("Update Asset Details", style = MaterialTheme.typography.headlineSmall, color = Color.White)
-                
-                TvInputField(label = "Title", value = title, onValueChange = { title = it })
-                TvInputField(label = "Video URL", value = videoUrl, onValueChange = { videoUrl = it })
-                TvInputField(label = "Image URL", value = imageUrl, onValueChange = { imageUrl = it })
-                TvInputField(label = "Membership Level", value = membership, onValueChange = { membership = it })
-                TvInputField(label = "Row Name", value = rowName, onValueChange = { rowName = it })
-                TvInputField(label = "Tags (comma separated)", value = tags, onValueChange = { tags = it })
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    androidx.tv.material3.Button(
-                        onClick = onDismiss, 
-                        colors = ButtonDefaults.colors(containerColor = Color.DarkGray)
-                    ) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    androidx.tv.material3.Button(
-                        onClick = { onUpdate(title, videoUrl, imageUrl, membership, rowName, tags) }
-                    ) {
-                        Text("Update")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-fun TvInputField(label: String, value: String, onValueChange: (String) -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
-    Column {
-        Text(label, color = if (isFocused) Color.White else Color.Gray, fontSize = 12.sp)
-        Surface(
-            onClick = { /* Handle click to focus */ },
-            shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
-            colors = ClickableSurfaceDefaults.colors(
-                containerColor = Color(0xFF222222),
-                focusedContainerColor = Color(0xFF333333)
-            ),
-            modifier = Modifier.onFocusChanged { isFocused = it.isFocused }.fillMaxWidth()
-        ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                cursorBrush = SolidColor(Color.White),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            )
-        }
-    }
-}
 

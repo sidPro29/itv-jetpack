@@ -23,14 +23,20 @@ import com.notifiy.itv.ui.components.TopBar
 import com.notifiy.itv.ui.screens.CatalogScreen
 import com.notifiy.itv.ui.screens.DetailsScreen
 import com.notifiy.itv.ui.screens.HomeScreen
+import com.notifiy.itv.ui.screens.NewsDetailScreen
 import com.notifiy.itv.ui.screens.PlaceholderScreen
 import com.notifiy.itv.ui.screens.PlayerScreen
 import com.notifiy.itv.ui.screens.SearchScreen
+import com.notifiy.itv.ui.screens.SpaceNewsScreen
 import com.notifiy.itv.ui.theme.Background
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun AppNavigation(
@@ -46,20 +52,51 @@ fun AppNavigation(
     val activePlan by mainViewModel.activePlan.collectAsState()
     val refreshTrigger by mainViewModel.refreshTrigger.collectAsState()
     
-    val dropdownItems = listOf("News", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
+    val dropdownItems = listOf("TV Shows", "Movies", "News Videos", "Videos", "Documentary Films", "Documentary Series", "Science-Fiction")
     var isDropdownOpen by remember { mutableStateOf(false) }
+    
+    val showExpiryPopup by mainViewModel.showExpiryPopup.collectAsState()
+
+    if (showExpiryPopup) {
+        AlertDialog(
+            onDismissRequest = { /* Don't dismiss by clicking outside */ },
+            confirmButton = {
+                androidx.tv.material3.Button(
+                    onClick = { mainViewModel.handleExpiryOk() },
+                    colors = androidx.tv.material3.ButtonDefaults.colors(
+                        containerColor = Color(0xFF0066FF),
+                        focusedContainerColor = Color(0xFF0044BB)
+                    ),
+                    shape = androidx.tv.material3.ButtonDefaults.shape(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                ) {
+                    androidx.tv.material3.Text("OK", color = Color.White)
+                }
+            },
+            title = { androidx.tv.material3.Text("Plan Expired Alert", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { androidx.tv.material3.Text("Your current plan has expired. Please renew to continue enjoying premium content.", color = Color.Gray) },
+            containerColor = Color(0xFF1A1A1A),
+            titleContentColor = Color.White,
+            textContentColor = Color.Gray
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             if (!currentRoute.startsWith("Player") && !currentRoute.startsWith("Details")) {
                 TopBar(
                     currentTab = currentRoute.substringBefore("/"), 
-                    onTabSelected = { tab ->
+                     onTabSelected = { tab ->
                         if (dropdownItems.contains(tab)) {
                              isDropdownOpen = false
                              // Handle dropdown navigation logic if needed, currently placeholder
                              navController.navigate(tab) { launchSingleTop = true }
-                        } else if (tab == "Home" || tab == "Movies" || tab == "TV Shows" || tab == "Plans & Advertise") {
+                        } else if (tab == "News") {
+                            isDropdownOpen = false
+                            navController.navigate("News") {
+                                popUpTo("Home")
+                                launchSingleTop = true
+                            }
+                        } else if (tab == "Home" || tab == "Plans & Advertise") {
                            isDropdownOpen = false
                            val targetRoute = if (tab == "Plans & Advertise") "Plans" else tab
                            navController.navigate(targetRoute) {
@@ -91,7 +128,7 @@ fun AppNavigation(
                 val videoUrl = post.getEffectiveVideoUrl()
                 val encodedVideoUrl = if (videoUrl.isNotEmpty()) URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20") else ""
                 
-                val cleanDescription = post.excerpt.rendered.replace(Regex("<[^>]*>"), "").trim()
+                val cleanDescription = (post.description ?: "").replace(Regex("<[^>]*>"), "").trim()
                 val encodedDescription = URLEncoder.encode(cleanDescription, StandardCharsets.UTF_8.toString()).replace("+", "%20")
                 
                 navController.navigate("Details/${post.id}/$encodedTitle/$encodedUrl?videoUrl=$encodedVideoUrl&description=$encodedDescription")
@@ -115,13 +152,38 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     )
                 }
-                composable("TV Shows") { 
+                composable("News") {
+                    val newsViewModel: com.notifiy.itv.ui.viewmodel.NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    SpaceNewsScreen(
+                        viewModel = newsViewModel,
+                        onArticleClick = { articleId ->
+                            navController.navigate("NewsDetail/$articleId")
+                        }
+                    )
+                }
+                composable(
+                    route = "NewsDetail/{articleId}",
+                    arguments = listOf(navArgument("articleId") { type = NavType.IntType })
+                ) {
+                    val detailViewModel: com.notifiy.itv.ui.viewmodel.NewsDetailViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    val newsViewModel: com.notifiy.itv.ui.viewmodel.NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    NewsDetailScreen(
+                        detailViewModel = detailViewModel,
+                        newsViewModel = newsViewModel,
+                        onArticleClick = { articleId ->
+                            navController.navigate("NewsDetail/$articleId")
+                        },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable("TV Shows") {
                     CatalogScreen(
-                        title = "TV Shows", 
+                        title = "TV Shows",
                         type = "TV Shows",
                         onMovieClick = navigateToDetails
-                    ) 
+                    )
                 }
+
                 composable("Movies") { 
                     CatalogScreen(
                         title = "Movies", 
@@ -129,9 +191,18 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     ) 
                 }
-                composable("Plans") { 
+                composable(
+                    route = "Plans?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Plans" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Plans"
                     val context = androidx.compose.ui.platform.LocalContext.current
+                    
                     com.notifiy.itv.ui.screens.PlansScreen(
+                        isLoggedIn = isLoggedIn,
+                        onLoginRequired = {
+                            navController.navigate("Login?redirectTo=$redirectTo")
+                        },
                         onPaymentError = { error ->
                             android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
                         },
@@ -142,16 +213,17 @@ fun AppNavigation(
                                 popUpTo("Plans") { inclusive = true }
                             }
                         }
-                    ) 
+                    )
                 }
+
                 
                 // Dropdown items
-                composable("News") { 
+                composable("News Videos") {
                     CatalogScreen(
-                        title = "News", 
+                        title = "News Videos",
                         type = "News",
                         onMovieClick = navigateToDetails
-                    ) 
+                    )
                 }
                 composable("Videos") { 
                     CatalogScreen(
@@ -187,34 +259,43 @@ fun AppNavigation(
                         onMovieClick = navigateToDetails
                     )
                 }
-                composable("Login") { 
+                composable(
+                    route = "Login?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Home" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Home"
                     com.notifiy.itv.ui.screens.LoginScreen(
                         onLoginSuccess = {
                             mainViewModel.updateLoginStatus()
-                            navController.navigate("Home") {
-                                popUpTo("Home") { inclusive = true }
+                            navController.navigate(redirectTo) {
+                                popUpTo("Login") { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
                         onSignupClick = {
-                            navController.navigate("Signup")
+                            navController.navigate("Signup?redirectTo=$redirectTo")
                         }
                     )
                 }
-                composable("Signup") {
+                composable(
+                    route = "Signup?redirectTo={redirectTo}",
+                    arguments = listOf(navArgument("redirectTo") { defaultValue = "Home" })
+                ) { backStackEntry ->
+                    val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Home"
                     com.notifiy.itv.ui.screens.SignupScreen(
                         onSignupSuccess = {
                             mainViewModel.updateLoginStatus()
-                            navController.navigate("Home") {
-                                popUpTo("Home") { inclusive = true }
+                            navController.navigate(redirectTo) {
+                                popUpTo("Signup") { inclusive = true }
                                 launchSingleTop = true
                             }
                         },
                         onLoginClick = {
-                            navController.navigate("Login")
+                            navController.navigate("Login?redirectTo=$redirectTo")
                         }
                     )
                 }
+
 
                 composable("Profile") {
                     if (!isLoggedIn) {
