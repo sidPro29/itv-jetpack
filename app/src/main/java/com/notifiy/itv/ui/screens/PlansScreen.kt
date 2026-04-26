@@ -25,6 +25,8 @@ import com.notifiy.itv.ui.viewmodel.PlansViewModel
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun PlansScreen(
+    isLoggedIn: Boolean,
+    onLoginRequired: () -> Unit,
     onPaymentSuccess: () -> Unit,
     onPaymentError: (String) -> Unit,
     viewModel: PlansViewModel = hiltViewModel()
@@ -177,7 +179,11 @@ fun PlansScreen(
                     
                     items(categoryPlans) { plan ->
                         PlanRow(plan = plan, isProcessing = uiState.isPaymentProcessing) {
-                            viewModel.purchasePlan(plan)
+                            if (isLoggedIn) {
+                                viewModel.purchasePlan(plan)
+                            } else {
+                                onLoginRequired()
+                            }
                         }
                     }
                 }

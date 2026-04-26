@@ -196,27 +196,24 @@ fun AppNavigation(
                     arguments = listOf(navArgument("redirectTo") { defaultValue = "Plans" })
                 ) { backStackEntry ->
                     val redirectTo = backStackEntry.arguments?.getString("redirectTo") ?: "Plans"
-                    if (!isLoggedIn) {
-                        LaunchedEffect(Unit) {
-                            navController.navigate("Login?redirectTo=$redirectTo") {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    
+                    com.notifiy.itv.ui.screens.PlansScreen(
+                        isLoggedIn = isLoggedIn,
+                        onLoginRequired = {
+                            navController.navigate("Login?redirectTo=$redirectTo")
+                        },
+                        onPaymentError = { error ->
+                            android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
+                        },
+                        onPaymentSuccess = {
+                            mainViewModel.updateLoginStatus() // Refresh plan status
+                            android.widget.Toast.makeText(context, "Payment Successful! Plan Activated.", android.widget.Toast.LENGTH_LONG).show()
+                            navController.navigate("Home") {
                                 popUpTo("Plans") { inclusive = true }
                             }
                         }
-                    } else {
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        com.notifiy.itv.ui.screens.PlansScreen(
-                            onPaymentError = { error ->
-                                android.widget.Toast.makeText(context, "Error: $error", android.widget.Toast.LENGTH_LONG).show()
-                            },
-                            onPaymentSuccess = {
-                                mainViewModel.updateLoginStatus() // Refresh plan status
-                                android.widget.Toast.makeText(context, "Payment Successful! Plan Activated.", android.widget.Toast.LENGTH_LONG).show()
-                                navController.navigate("Home") {
-                                    popUpTo("Plans") { inclusive = true }
-                                }
-                            }
-                        )
-                    }
+                    )
                 }
 
                 

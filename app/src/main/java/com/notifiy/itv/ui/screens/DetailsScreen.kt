@@ -155,7 +155,7 @@ fun DetailsScreen(
                                     ),
                                     modifier = Modifier.padding(end = 8.dp)
                                 ) {
-                                    Text("▶ Click to Watch", fontWeight = FontWeight.Bold)
+                                    Text("▶ Click now to Watch", fontWeight = FontWeight.Bold)
                                 }
                             } else {
                                 Button(

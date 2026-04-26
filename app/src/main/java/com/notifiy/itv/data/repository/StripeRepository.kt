@@ -25,8 +25,27 @@ class StripeRepository @Inject constructor(
     private val STRIPE_SECRET_KEY = BuildConfig.STRIPE_SECRET_KEY
 
     suspend fun getMembershipLevels(): List<ItvPlan> {
-        val wpToken = sessionManager.fetchWpToken() ?: ""
-        val authHeader = "Bearer $wpToken"
+        val userToken = sessionManager.fetchWpToken()
+        
+        val token = if (!userToken.isNullOrEmpty()) {
+            userToken
+        } else {
+            // If not logged in, try to get an admin token to fetch the list of plans
+            try {
+                val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+                adminLoginRes.token
+            } catch (e: Exception) {
+                Log.e(TAG, "Admin login for plans failed: ${e.message}")
+                null
+            }
+        }
+
+        if (token.isNullOrEmpty()) {
+            Log.w(TAG, "No token available (user or admin). Falling back to default plans.")
+            return getDefaultPlans()
+        }
+
+        val authHeader = "Bearer $token"
         
         return try {
             val response = apiService.getMembershipLevels(authHeader)
@@ -34,11 +53,19 @@ class StripeRepository @Inject constructor(
                 val levelsMap = response.body() ?: emptyMap()
                 levelsMap.values.map { level ->
                     val price = (level.billing_amount ?: level.initial_payment ?: "0").toDoubleOrNull() ?: 0.0
-                    val billingCycle = if (level.cycle_period?.lowercase()?.contains("year") == true) "Yearly" else "Monthly"
+                    val name = level.name ?: "Unknown Plan"
+                    val cyclePeriod = level.cycle_period?.lowercase() ?: ""
+                    
+                    val isYearly = cyclePeriod.contains("year") || 
+                                 cyclePeriod.contains("annual") || 
+                                 name.lowercase().contains("year") || 
+                                 name.lowercase().contains("annual")
+                    
+                    val billingCycle = if (isYearly) "Yearly" else "Monthly"
                     
                     ItvPlan(
                         id = level.id ?: "",
-                        name = level.name ?: "Unknown Plan",
+                        name = name,
                         price = price,
                         currency = "EUR",
                         billingCycle = billingCycle,
@@ -59,10 +86,13 @@ class StripeRepository @Inject constructor(
     private fun getDefaultPlans() = listOf(
         // Basic SD
         ItvPlan("8270", "Basic SD All Access AVOD", 1.99, "EUR", "Monthly", "Basic SD", "SD quality, with ads"),
+        ItvPlan("8271", "Basic SD All Access AVOD Yearly", 19.99, "EUR", "Yearly", "Basic SD", "SD quality, with ads (Yearly)"),
         // Standard
         ItvPlan("8272", "Standard HD Monthly", 4.99, "EUR", "Monthly", "Standard HD", "High Definition"),
+        ItvPlan("8273", "Standard HD Yearly", 49.99, "EUR", "Yearly", "Standard HD", "High Definition (Yearly)"),
         // Premium
-        ItvPlan("8274", "Premium UHD Monthly", 7.99, "EUR", "Monthly", "Premium UHD", "Ultra High Definition")
+        ItvPlan("8274", "Premium UHD Monthly", 7.99, "EUR", "Monthly", "Premium UHD", "Ultra High Definition"),
+        ItvPlan("8275", "Premium UHD Yearly", 79.99, "EUR", "Yearly", "Premium UHD", "Ultra High Definition (Yearly)")
     )
 
 

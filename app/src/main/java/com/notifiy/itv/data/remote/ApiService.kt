@@ -13,7 +13,7 @@ interface ApiService {
         @Query("per_page") perPage: Int = 20,
         @Query("page") page: Int = 1,
         @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded"
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
     ): List<NewsArticle>
 
     @GET("wp/v2/posts")
@@ -22,14 +22,14 @@ interface ApiService {
         @Query("categories") categories: Int = 10794,
         @Query("per_page") perPage: Int = 10,
         @Query("_embed") embed: String = "wp:featuredmedia",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded"
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
     ): List<NewsArticle>
 
     @GET("wp/v2/posts/{id}")
     suspend fun getNewsArticleById(
         @retrofit2.http.Path("id") id: Int,
         @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded"
+        @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded,_links"
     ): NewsArticle
 
     @GET("custom-streamit/v1/videos")

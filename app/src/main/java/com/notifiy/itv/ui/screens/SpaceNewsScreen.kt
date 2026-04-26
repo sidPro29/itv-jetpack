@@ -244,8 +244,8 @@ fun NewsListCard(article: NewsArticle, onClick: () -> Unit) {
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .width(112.dp)
                         .fillMaxHeight()
+                        .aspectRatio(16/9f)
                         .clip(RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp))
                 )
             } else {
