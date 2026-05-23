@@ -51,13 +51,24 @@ class AuthRepository @Inject constructor(
         android.util.Log.d(TAG, "WordPress Direct Signup attempt for: $email")
         
         return try {
+            // 1. Log in as admin to get the token for creating a user
+            val adminLoginRes = try {
+                apiService.login(com.notifiy.itv.data.model.LoginRequest(com.notifiy.itv.BuildConfig.WP_ADMIN_USER, com.notifiy.itv.BuildConfig.WP_ADMIN_PASSWORD))
+            } catch (e: Exception) {
+                null
+            }
+            val adminToken = adminLoginRes?.token
+            if (adminToken == null) {
+                return Result.failure(Exception("Failed to get admin token for signup."))
+            }
+
             val wpSignupRequest = WpSignupRequest(
                 username = email.split("@")[0], // Email prefix as username
                 name = name,
                 email = email,
                 password = password
             )
-            val wpResponse = apiService.signup(wpSignupRequest)
+            val wpResponse = apiService.signup("Bearer $adminToken", wpSignupRequest)
             
             if (wpResponse.isSuccessful) {
                 android.util.Log.d(TAG, "WordPress Signup Successful. Logging in...")
@@ -95,7 +106,7 @@ class AuthRepository @Inject constructor(
             // Try to log in with admin to ensure permissions to see other users' data
             // Consistently using 'siddhartha.verma' which was working in StripeRepository
             val adminLoginRes = try {
-                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+                apiService.login(com.notifiy.itv.data.model.LoginRequest(com.notifiy.itv.BuildConfig.WP_ADMIN_USER, com.notifiy.itv.BuildConfig.WP_ADMIN_PASSWORD))
             } catch (e: Exception) { 
                 android.util.Log.e("siddharthaLogs", "Admin login in syncMembership failed: ${e.message}")
                 null 
@@ -164,7 +175,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun cancelMembership(wpUserId: Long): Boolean {
         return try {
-            val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
+            val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest(com.notifiy.itv.BuildConfig.WP_ADMIN_USER, com.notifiy.itv.BuildConfig.WP_ADMIN_PASSWORD))
             val adminToken = adminLoginRes.token ?: return false
             val authHeader = "Bearer $adminToken"
             

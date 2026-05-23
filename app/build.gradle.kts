@@ -33,6 +33,8 @@ android {
         debug {
             buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("stripe.test.publishable.key") ?: ""}\"")
             buildConfigField("String", "STRIPE_SECRET_KEY", "\"${localProperties.getProperty("stripe.test.secret.key") ?: ""}\"")
+            buildConfigField("String", "WP_ADMIN_USER", "\"${localProperties.getProperty("wp.admin.user") ?: ""}\"")
+            buildConfigField("String", "WP_ADMIN_PASSWORD", "\"${localProperties.getProperty("wp.admin.password") ?: ""}\"")
         }
         release {
             isMinifyEnabled = false
@@ -42,6 +44,8 @@ android {
             )
             buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${localProperties.getProperty("stripe.live.publishable.key") ?: ""}\"")
             buildConfigField("String", "STRIPE_SECRET_KEY", "\"${localProperties.getProperty("stripe.live.secret.key") ?: ""}\"")
+            buildConfigField("String", "WP_ADMIN_USER", "\"${localProperties.getProperty("wp.admin.user") ?: ""}\"")
+            buildConfigField("String", "WP_ADMIN_PASSWORD", "\"${localProperties.getProperty("wp.admin.password") ?: ""}\"")
         }
     }
     compileOptions {

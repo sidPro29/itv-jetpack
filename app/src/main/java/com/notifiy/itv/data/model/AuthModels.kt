@@ -23,7 +23,8 @@ data class WpSignupRequest(
     val username: String,
     val name: String,
     val email: String,
-    val password: String
+    val password: String,
+    val roles: List<String> = listOf("subscriber")
 )
 
 data class WpUserResponse(

@@ -49,6 +49,7 @@ interface ApiService {
 
     @retrofit2.http.POST("wp/v2/users")
     suspend fun signup(
+        @retrofit2.http.Header("Authorization") authHeader: String,
         @retrofit2.http.Body request: com.notifiy.itv.data.model.WpSignupRequest
     ): retrofit2.Response<okhttp3.ResponseBody>
 
