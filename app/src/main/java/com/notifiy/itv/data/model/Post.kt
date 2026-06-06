@@ -1,42 +1,58 @@
 package com.notifiy.itv.data.model
 
 import com.google.gson.annotations.SerializedName
-import com.notifiy.itv.data.util.VideoUrlManager
-
-data class AssetResponse(
-    val page: Int,
-    @SerializedName("per_page")
-    val perPage: Int,
-    val total: Int,
-    @SerializedName("total_pages")
-    val totalPages: Int,
-    val results: List<Post>
-)
 
 data class Post(
-    @SerializedName("asset_id")
-    val id: Int,
+    @SerializedName("_id")
+    val id: String,
+    @SerializedName("type")
     val category: String, // video, movie, tvshow
-    @SerializedName("imageUrl")
-    val imageUrl: String?,
+    @SerializedName("images")
+    val images: List<String>?,
     @SerializedName("videoUrl")
-    val videoUrl: String?,
+    val videoUrlList: List<String>?,
     @SerializedName("title")
     private val _title: String?,
+    @SerializedName("description")
     val description: String?,
-    val tag: String?,
-    val genre: String?,
-    @SerializedName("membership_level")
-    private val _membershipLevel: String? // comma separated string like "20354, 20353"
+    @SerializedName("tags")
+    val tags: List<String>?,
+    @SerializedName("genres")
+    val genres: List<String>?,
+    @SerializedName("svp_clip_id")
+    val svpClipId: String?,
+    @SerializedName("videoUrls")
+    val videoUrls: VideoUrls?
 ) {
-    val title: RenderedContent get() = RenderedContent(_title ?: "")
+    val title: RenderedContent get() = RenderedContent(_title ?: "Untitled")
     
     // UI backward compatibility
-    val portraitPoster: String get() = imageUrl ?: ""
-    val membershipLevel: List<String> get() = _membershipLevel?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+    val portraitPoster: String get() = images?.firstOrNull() ?: ""
+    val membershipLevel: List<String> get() = emptyList() // To be implemented with new Plans
+    val tag: String get() = tags?.joinToString(", ") ?: ""
+    val genre: String get() = genres?.joinToString(", ") ?: ""
+    val imageUrl: String get() = portraitPoster
+    val videoUrl: String get() = videoUrlList?.firstOrNull() ?: ""
 
-    fun getDisplayImageUrl(): String = imageUrl ?: ""
-    fun getEffectiveVideoUrl(): String = VideoUrlManager.fixVideoUrl(videoUrl ?: "")
+    fun getDisplayImageUrl(): String = portraitPoster
+    
+    fun getEffectiveVideoUrl(): String {
+        videoUrls?.let { urls ->
+            if (category == "video" && !urls.hls.isNullOrEmpty()) return urls.hls
+            return urls.mp4 ?: urls.hls ?: ""
+        }
+        if (!svpClipId.isNullOrEmpty()) {
+            return "https://api.interplanetary.tv/api/media-assets/playback/$svpClipId"
+        }
+        return videoUrl
+    }
 }
+
+data class VideoUrls(
+    @SerializedName("hls")
+    val hls: String?,
+    @SerializedName("mp4")
+    val mp4: String?
+)
 
 data class RenderedContent(val rendered: String)

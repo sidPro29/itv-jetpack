@@ -36,8 +36,8 @@ class ItvRepository @Inject constructor(
             } else {
                 context.assets.open(filename).bufferedReader().use { it.readText() }
             }
-            val response = gson.fromJson(jsonString, com.notifiy.itv.data.model.AssetResponse::class.java)
-            response.results
+            val type = object : TypeToken<List<Post>>() {}.type
+            gson.fromJson<List<Post>>(jsonString, type)
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -46,14 +46,8 @@ class ItvRepository @Inject constructor(
 
     private fun saveToInternal(filename: String, posts: List<Post>) {
         try {
-            val response = com.notifiy.itv.data.model.AssetResponse(
-                page = 1,
-                perPage = posts.size,
-                total = posts.size,
-                totalPages = 1,
-                results = posts
-            )
-            val jsonString = gson.toJson(response)
+            val type = object : TypeToken<List<Post>>() {}.type
+            val jsonString = gson.toJson(posts, type)
             getInternalFile(filename).writeText(jsonString)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -77,7 +71,7 @@ class ItvRepository @Inject constructor(
 
     suspend fun updateVideos(): List<Post> = withContext(Dispatchers.IO) {
         try {
-            val results = apiService.getVideos().results
+            val results = apiService.getVideos()
             cachedVideos = results
             saveToInternal("videos_data.json", results)
             results
@@ -89,7 +83,7 @@ class ItvRepository @Inject constructor(
 
     suspend fun updateMovies(): List<Post> = withContext(Dispatchers.IO) {
         try {
-            val results = apiService.getMovies().results
+            val results = apiService.getMovies()
             cachedMovies = results
             saveToInternal("movies_data.json", results)
             results
@@ -101,7 +95,7 @@ class ItvRepository @Inject constructor(
 
     suspend fun updateTVShows(): List<Post> = withContext(Dispatchers.IO) {
         try {
-            val results = apiService.getTVShows().results
+            val results = apiService.getTVShows()
             cachedTvShows = results
             saveToInternal("tvshows_data.json", results)
             results

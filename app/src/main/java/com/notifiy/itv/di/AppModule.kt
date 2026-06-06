@@ -15,7 +15,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "https://interplanetary.tv/wp-json/"
+    private const val BASE_URL = "https://api.interplanetary.tv/api/"
 
     @Provides
     @Singleton

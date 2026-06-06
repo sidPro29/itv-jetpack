@@ -32,14 +32,14 @@ interface ApiService {
         @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded,_links"
     ): NewsArticle
 
-    @GET("custom-streamit/v1/videos")
-    suspend fun getVideos(): com.notifiy.itv.data.model.AssetResponse
+    @GET("videos?type=video")
+    suspend fun getVideos(): List<Post>
 
-    @GET("custom-streamit/v1/movies")
-    suspend fun getMovies(): com.notifiy.itv.data.model.AssetResponse
+    @GET("videos?type=movie")
+    suspend fun getMovies(): List<Post>
 
-    @GET("custom-streamit/v1/tvshows")
-    suspend fun getTVShows(): com.notifiy.itv.data.model.AssetResponse
+    @GET("videos?type=tvshow")
+    suspend fun getTVShows(): List<Post>
 
 
     @retrofit2.http.POST("jwt-auth/v1/token")

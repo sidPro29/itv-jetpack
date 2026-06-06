@@ -148,63 +148,8 @@ fun PlayerScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             )
-        } else if (currentVideoUrl.contains(".php") || currentVideoUrl.contains("webvideocore")) {
-            // Web-based player (like webvideocore .php links)
-            AndroidView(
-                factory = { ctx ->
-                    android.webkit.WebView(ctx).apply {
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            mediaPlaybackRequiresUserGesture = false
-                            useWideViewPort = true
-                            loadWithOverviewMode = true
-                            databaseEnabled = true
-                            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-                            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        }
-                        
-                        webViewClient = object : android.webkit.WebViewClient() {
-                            override fun onReceivedSslError(view: android.webkit.WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
-                                handler?.proceed()
-                            }
-                            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                                // Webview doesn't easily know when video *actually* starts inside iframe, 
-                                // but page finish is the best generic signal.
-                                isLoading = false
-                            }
-                            override fun onReceivedError(view: android.webkit.WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-                                val techMsg = "WebView Error: ${error?.description}"
-                                Log.e("itvplaybackerror", "Failed URL: $currentVideoUrl | $techMsg")
-                                errorMessage = "Failed to load the embedded video stream."
-                                technicalError = techMsg
-                                hasError = true
-                                isLoading = false
-                            }
-                        }
-                        
-                        val embedHtml = """
-                            <html>
-                            <body style="margin:0;padding:0;background:black;">
-                                <div style="position: relative; padding-bottom: 56.25%; height: 100vh; width: 100vw; overflow: hidden;">
-                                    <iframe src="$currentVideoUrl" 
-                                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
-                                            title="Interplanetary.tv Live" 
-                                            allow="autoplay; fullscreen" 
-                                            allowfullscreen>
-                                    </iframe>
-                                </div>
-                            </body>
-                            </html>
-                        """.trimIndent()
-                        
-                        loadDataWithBaseURL("https://interplanetary.tv", embedHtml, "text/html", "UTF-8", null)
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
         } else {
-            // Standard ExoPlayer (or fallback for non-ID youtube links)
+            // Standard ExoPlayer (handles the .m3u8 HLS streams cleanly)
             val exoPlayer = remember {
                 ExoPlayer.Builder(context).build().apply {
                     playWhenReady = true
