@@ -2,90 +2,66 @@ package com.notifiy.itv.data.remote
 
 import com.notifiy.itv.data.model.NewsArticle
 import com.notifiy.itv.data.model.Post
+import com.notifiy.itv.data.model.ItvPlan
+import com.notifiy.itv.data.model.ItvPurchase
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.http.POST
+import retrofit2.http.Body
+import retrofit2.http.Path
+import retrofit2.Response
+import okhttp3.ResponseBody
 
 interface ApiService {
 
-    @GET("wp/v2/posts")
-    suspend fun getNewsArticles(
-        @Query("categories") categories: Int = 10794,
-        @Query("per_page") perPage: Int = 20,
-        @Query("page") page: Int = 1,
-        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
-    ): List<NewsArticle>
+    @GET("articles")
+    suspend fun getNewsArticles(): List<NewsArticle>
 
-    @GET("wp/v2/posts")
+    @GET("articles")
     suspend fun searchNewsArticles(
-        @Query("search") query: String,
-        @Query("categories") categories: Int = 10794,
-        @Query("per_page") perPage: Int = 10,
-        @Query("_embed") embed: String = "wp:featuredmedia",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,featured_media,_embedded,_links"
+        @Query("search") query: String
     ): List<NewsArticle>
 
-    @GET("wp/v2/posts/{id}")
+    @GET("articles/{id}")
     suspend fun getNewsArticleById(
-        @retrofit2.http.Path("id") id: Int,
-        @Query("_embed") embed: String = "wp:featuredmedia,wp:term",
-        @Query("_fields") fields: String = "id,date,link,title,excerpt,content,featured_media,_embedded,_links"
+        @Path("id") id: String
     ): NewsArticle
 
-    @GET("custom-streamit/v1/videos")
-    suspend fun getVideos(): com.notifiy.itv.data.model.AssetResponse
+    @GET("media-assets?type=video")
+    suspend fun getVideosList(): List<Post>
 
-    @GET("custom-streamit/v1/movies")
-    suspend fun getMovies(): com.notifiy.itv.data.model.AssetResponse
+    @GET("media-assets?type=movie")
+    suspend fun getMoviesList(): List<Post>
 
-    @GET("custom-streamit/v1/tvshows")
-    suspend fun getTVShows(): com.notifiy.itv.data.model.AssetResponse
+    @GET("media-assets?type=tvshow")
+    suspend fun getTVShowsList(): List<Post>
 
-
-    @retrofit2.http.POST("jwt-auth/v1/token")
+    @POST("auth/login")
     suspend fun login(
-        @retrofit2.http.Body request: com.notifiy.itv.data.model.LoginRequest
+        @Body request: com.notifiy.itv.data.model.LoginRequest
     ): com.notifiy.itv.data.model.LoginResponse
 
-    @retrofit2.http.POST("wp/v2/users")
+    @POST("auth/signup")
     suspend fun signup(
-        @retrofit2.http.Body request: com.notifiy.itv.data.model.WpSignupRequest
-    ): retrofit2.Response<okhttp3.ResponseBody>
+        @Body request: com.notifiy.itv.data.model.WpSignupRequest
+    ): Response<ResponseBody>
 
-    @retrofit2.http.GET("wp/v2/users/me")
-    suspend fun getMe(
-        @retrofit2.http.Header("Authorization") authHeader: String
-    ): com.notifiy.itv.data.model.WpUserResponse
+    @GET("users/me")
+    suspend fun getMe(): com.notifiy.itv.data.model.WpUserResponse
 
-    @retrofit2.http.GET("pmpro/v1/get_membership_level_for_user")
-    suspend fun getMembershipForUser(
-        @retrofit2.http.Header("Authorization") authHeader: String,
-        @retrofit2.http.Query("user_id") userId: Long
-    ): retrofit2.Response<okhttp3.ResponseBody>
-    
-    @retrofit2.http.GET("pmpro/v1/membership_levels")
-    suspend fun getMembershipLevels(
-        @retrofit2.http.Header("Authorization") authHeader: String
-    ): retrofit2.Response<Map<String, com.notifiy.itv.data.model.MembershipLevel>>
+    @GET("plans")
+    suspend fun getMembershipLevels(): List<ItvPlan>
 
-    
-    @retrofit2.http.GET("pmpro/v1/get_orders")
-    suspend fun getOrders(
-        @retrofit2.http.Header("Authorization") authHeader: String,
-        @retrofit2.http.Query("user_id") userId: Long
-    ): retrofit2.Response<okhttp3.ResponseBody>
+    @POST("plans/confirm-purchase")
+    suspend fun confirmPurchase(
+        @Body request: Map<String, String>
+    ): Response<ResponseBody>
 
+    @GET("users/my-purchases")
+    suspend fun getUserPurchases(): List<ItvPurchase>
 
     @retrofit2.http.FormUrlEncoded
-    @retrofit2.http.POST("pmpro/v1/change_membership_level")
-    suspend fun changeMembershipLevel(
-        @retrofit2.http.Header("Authorization") authHeader: String,
-        @retrofit2.http.Field("level_id") levelId: String,
-        @retrofit2.http.Field("user_id") userId: Long? = null
-    ): retrofit2.Response<okhttp3.ResponseBody>
-
-    @retrofit2.http.FormUrlEncoded
-    @retrofit2.http.POST("https://api.stripe.com/v1/payment_intents")
+    @POST("https://api.stripe.com/v1/payment_intents")
     suspend fun createPaymentIntent(
         @retrofit2.http.Header("Authorization") authHeader: String,
         @retrofit2.http.Field("amount") amount: Long,

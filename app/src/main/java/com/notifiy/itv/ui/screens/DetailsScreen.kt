@@ -29,22 +29,21 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import com.notifiy.itv.data.model.Post
 import com.notifiy.itv.ui.components.MovieCard
+import com.notifiy.itv.ui.components.BackgroundVideoPlayer
 import com.notifiy.itv.ui.viewmodel.DetailsViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -55,7 +54,7 @@ fun DetailsScreen(
     imageUrl: String?,
     isVideoAvailable: Boolean = true,
     viewModel: DetailsViewModel = hiltViewModel(),
-    onPlayClick: () -> Unit,
+    onPlayClick: (String) -> Unit,
     onSubscribeClick: () -> Unit,
     onMovieClick: (Post) -> Unit
 ) {
@@ -73,20 +72,136 @@ fun DetailsScreen(
         viewModel.loadDetails(id)
     }
 
+    var backgroundVideoUrl by remember { mutableStateOf("") }
+    var isVideoResolving by remember { mutableStateOf(false) }
+    var isVideoReady by remember { mutableStateOf(false) }
+
+    // Clear the background player URL when this screen leaves composition
+    // so BackgroundVideoPlayer is destroyed and resources are freed
+    DisposableEffect(Unit) {
+        onDispose {
+            backgroundVideoUrl = ""
+            isVideoReady = false
+        }
+    }
+
+    LaunchedEffect(post) {
+        val currentPost = post ?: return@LaunchedEffect
+        isVideoResolving = true
+        isVideoReady = false
+        backgroundVideoUrl = ""
+        try {
+            var clipId: String? = null
+            var directUrl: String? = null
+
+            val type = currentPost.type.lowercase()
+            // Background: for movies show trailer, for tvshow/video show the main clip
+            if (type == "movie" || type == "movies") {
+                clipId = currentPost.trailer?.get("clipId") as? String
+                if (clipId.isNullOrEmpty()) {
+                    directUrl = currentPost.trailer?.get("ytUrl") as? String
+                        ?: currentPost.trailer?.get("youtube") as? String
+                }
+            } else if (type == "tvshow" || type == "tvshows") {
+                clipId = currentPost.videos?.get("clipId") as? String
+                if (clipId.isNullOrEmpty()) {
+                    directUrl = currentPost.videos?.get("ytUrl") as? String
+                        ?: currentPost.videos?.get("youtube") as? String
+                }
+            } else if (type == "video") {
+                clipId = currentPost.videos?.get("clipId") as? String
+                if (clipId.isNullOrEmpty()) {
+                    directUrl = currentPost.videos?.get("ytUrl") as? String
+                        ?: currentPost.videos?.get("youtube") as? String
+                }
+            }
+
+            val resolved: String = when {
+                !clipId.isNullOrEmpty() -> {
+                    val playbackUrl = "https://api.interplanetary.tv/api/media-assets/playback/$clipId"
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val client = okhttp3.OkHttpClient.Builder()
+                                .followRedirects(true).followSslRedirects(true).build()
+                            val request = okhttp3.Request.Builder()
+                                .url("$playbackUrl?format=json").build()
+                            client.newCall(request).execute().use { response ->
+                                if (response.isSuccessful) {
+                                    val body = response.body?.string() ?: return@withContext ""
+                                    val mapType = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+                                    val map: Map<String, Any> = com.google.gson.Gson().fromJson(body, mapType)
+                                    map["url"] as? String ?: ""
+                                } else ""
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DetailsScreen", "SVP API error: ${e.message}")
+                            ""
+                        }
+                    }
+                }
+                !directUrl.isNullOrEmpty() -> directUrl ?: ""
+                else -> ""
+            }
+
+            // Set on main thread after withContext returns — no IO-thread state mutation
+            backgroundVideoUrl = resolved
+        } catch (e: Exception) {
+            Log.e("DetailsScreen", "Error resolving details background video: ${e.message}", e)
+        } finally {
+            isVideoResolving = false
+        }
+    }
+
+
+    val imageAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isVideoReady) 0f else 0.4f,
+        label = "DetailsImageAlpha"
+    )
+
     Box(modifier = Modifier
         .fillMaxSize()
         .background(Color.Black)) {
-        // Background Image Fixed
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            alpha = 0.4f
-        )
+        
+        // Background Layer (Video or Image fallback)
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (backgroundVideoUrl.isNotEmpty() && !isVideoResolving) {
+                BackgroundVideoPlayer(
+                    videoUrl = backgroundVideoUrl, 
+                    volume = 0f,
+                    onVideoReady = { isVideoReady = it }
+                )
+            }
+            
+            // Poster image
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                alpha = imageAlpha
+            )
+            
+            // Loader Spinner
+            if (backgroundVideoUrl.isNotEmpty() && !isVideoReady) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color(0xFF0F4098),
+                        modifier = Modifier.size(45.dp)
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+            )
+        }
 
         // Background Gradient
         Box(
@@ -127,14 +242,18 @@ fun DetailsScreen(
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
-
-                      Text(
-                          text = description,
-                          style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                          color = Color.White.copy(alpha = 0.9f),
-                          maxLines = 5,
-                          overflow = TextOverflow.Ellipsis
-                      )
+                    
+                    Text(
+                        text = description,
+                        modifier = Modifier.fillMaxWidth(0.3f),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp
+                        ),
+                        color = Color.White.copy(alpha = 0.85f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("🗣️ English (UK)", color = Color.White, fontSize = 14.sp)
@@ -148,7 +267,14 @@ fun DetailsScreen(
                         if (isVideoAvailable) {
                             if (viewModel.canWatch()) {
                                 Button(
-                                    onClick = onPlayClick,
+                                    onClick = {
+                                        // Always use the post's main video URL (videos.clipId), not
+                                        // backgroundVideoUrl which for movies holds the *trailer* URL.
+                                        // PlayerScreen resolves the SVP API URL (/media-assets/playback/)
+                                        // itself, so passing the raw effective URL is correct.
+                                        val playUrl = post?.getEffectiveVideoUrl() ?: ""
+                                        onPlayClick(playUrl)
+                                    },
                                     colors = ButtonDefaults.colors(
                                         containerColor = Color(0xFF0F4098),
                                         contentColor = Color.White
@@ -170,7 +296,6 @@ fun DetailsScreen(
                                 }
                             }
                         }
-
 
                         // Circular buttons
                         Button(
@@ -238,5 +363,3 @@ fun DetailsScreen(
         }
     }
 }
-
-

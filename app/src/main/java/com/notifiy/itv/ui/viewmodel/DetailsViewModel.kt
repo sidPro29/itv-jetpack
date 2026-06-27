@@ -2,9 +2,11 @@ package com.notifiy.itv.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.notifiy.itv.data.model.ItvPlan
 import com.notifiy.itv.data.model.Post
 import com.notifiy.itv.data.repository.ItvRepository
 import com.notifiy.itv.data.repository.SessionManager
+import com.notifiy.itv.data.repository.StripeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DetailsViewModel @Inject constructor(
     private val sessionManager: SessionManager,
-    private val repository: ItvRepository
+    private val repository: ItvRepository,
+    private val stripeRepository: StripeRepository
 ) : ViewModel() {
 
     private val _post = MutableStateFlow<Post?>(null)
@@ -41,22 +44,25 @@ class DetailsViewModel @Inject constructor(
     private val _isInPlaylist = MutableStateFlow(false)
     val isInPlaylist = _isInPlaylist.asStateFlow()
 
+    private var cachedPlans: List<ItvPlan>? = null
+
     fun loadDetails(postId: Int) {
         _activePlan.value = sessionManager.fetchActivePlan()
         checkStatus(postId)
         viewModelScope.launch {
+            // Load plans for pricing comparison
+            cachedPlans = stripeRepository.getMembershipLevels()
+
             val movies = repository.getMovies()
             val videos = repository.getVideos()
             val tvShows = repository.getTVShows()
             val allPosts = movies + videos + tvShows
             
-            // Fetch mapped assets from Repository (which now uses WP only)
             val mappedPosts = repository.getAllAssetsWithTags()
             val matchedPost = mappedPosts.find { it.first.id == postId }
             
             if (matchedPost != null) {
                 _post.value = matchedPost.first
-                // The second item in the pair is the list of tags
                 val tagsList = matchedPost.second
                     .filter { it.isNotBlank() }
                     .map { it.trim() }
@@ -65,7 +71,7 @@ class DetailsViewModel @Inject constructor(
                 _postTags.value = tagsList.joinToString(" • ")
             } else {
                 _post.value = allPosts.find { it.id == postId }
-                _postTags.value = "Category • Genre" // Fallback
+                _postTags.value = "Category • Genre"
             }
             
             _recommendedMovies.value = movies.shuffled().take(10)
@@ -98,18 +104,35 @@ class DetailsViewModel @Inject constructor(
 
     fun canWatch(): Boolean {
         val currentPost = _post.value ?: return false
-        val membershipList = currentPost.membershipLevel
+        val reqPlans = currentPost.membershipPlanList ?: return true
+        if (reqPlans.isEmpty()) return true
         
-        // Rule: If empty or contains "free", anyone can watch
-        if (currentPost.membershipLevel.isEmpty() ||
-            currentPost.membershipLevel.any { it.contains("free", ignoreCase = true) }) {
+        if (reqPlans.any { it.planName?.contains("free", ignoreCase = true) == true }) {
             return true
         }
+
+        val activePlanName = sessionManager.fetchActivePlan() ?: return false
+        val allPlans = cachedPlans ?: return false
         
-        // Else: Check if user has an active plan
-        val plan = sessionManager.fetchActivePlan()
-        return !plan.isNullOrEmpty()
+        val activePlan = allPlans.find { it.name == activePlanName } ?: return false
+        
+        var contentMinAmount = Double.MAX_VALUE
+        var directMatch = false
+        
+        for (req in reqPlans) {
+            if (req.planName == activePlanName) {
+                directMatch = true
+                break
+            }
+            val foundPlan = allPlans.find { it.name == req.planName || it.id == req.planId }
+            if (foundPlan != null && foundPlan.price < contentMinAmount) {
+                contentMinAmount = foundPlan.price
+            }
+        }
+        
+        if (directMatch) return true
+        if (contentMinAmount == Double.MAX_VALUE) return false
+        
+        return activePlan.price >= contentMinAmount
     }
-
 }
-

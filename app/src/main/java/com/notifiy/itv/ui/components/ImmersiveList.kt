@@ -2,9 +2,7 @@ package com.notifiy.itv.ui.components
 
 import android.net.Uri
 import android.util.Log
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +18,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -30,7 +29,6 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -41,7 +39,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.notifiy.itv.ui.theme.Background
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -53,18 +55,24 @@ fun ImmersiveList(
 ) {
     if (items.isEmpty()) return
 
+    val liveAsset = remember(items) {
+        items.find { it.id == 587 || it.mongoId == "587" || it.title.rendered.lowercase().contains("live") } ?: items.firstOrNull()
+    }
+
     var focusedItem by remember { mutableStateOf(items.firstOrNull()) }
     var isListFocused by remember { mutableStateOf(false) }
-    var isVideoPlaying by remember { mutableStateOf(false) }
-    
-    // Handle Video Playback Delay
-    LaunchedEffect(focusedItem, isListFocused) {
-        isVideoPlaying = false
-        if (isListFocused && focusedItem != null) {
-            delay(3000) // 3 seconds delay
-            isVideoPlaying = true
-        }
+    var isVideoPlaying by remember { mutableStateOf(liveAsset != null) }
+    var isVideoReady by remember { mutableStateOf(false) }
+
+    LaunchedEffect(liveAsset) {
+        isVideoPlaying = liveAsset != null
+        isVideoReady = false
     }
+
+    val imageAlpha by animateFloatAsState(
+        targetValue = if (isVideoReady) 0f else 0.6f,
+        label = "ImmersiveImageAlpha"
+    )
 
     Box(
         modifier = modifier
@@ -73,8 +81,7 @@ fun ImmersiveList(
             .clipToBounds()
     ) {
         // Background Image (Always present as fallback/underlay)
-        val imageUrl = focusedItem?.portraitPoster
-
+        val imageUrl = liveAsset?.portraitPoster ?: items.firstOrNull()?.portraitPoster
 
         if (imageUrl != null) {
             AsyncImage(
@@ -82,24 +89,41 @@ fun ImmersiveList(
                     .data(imageUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = null, // decorative
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(.85f)
-                    .alpha(if (isVideoPlaying) 0f else 0.6f) // Hide image when video plays
+                    .alpha(imageAlpha)
             )
         }
 
-        // Background Video Player
-        if (isVideoPlaying && focusedItem != null) {
-            val videoUrl = focusedItem?.getEffectiveVideoUrl() ?: ""
-            Log.i("siddharthaverma", "ImmersiveList: videoUrl = $videoUrl")
+        // Background Video Player (Plays the live asset continuously)
+        if (isVideoPlaying && liveAsset != null) {
+            val videoUrl = liveAsset.getEffectiveVideoUrl()
             if (videoUrl.isNotEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth()
-                    .fillMaxHeight(.85f)) {
-                     BackgroundVideoPlayer(videoUrl = videoUrl)
+                Box(modifier = Modifier.fillMaxWidth().fillMaxHeight(.85f)) {
+                    BackgroundVideoPlayer(
+                        videoUrl = videoUrl,
+                        volume = 0f,
+                        onVideoReady = { isVideoReady = it }
+                    )
                 }
+            }
+        }
+
+        // Small Buffering Spinner while loading background video
+        if (isVideoPlaying && !isVideoReady) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(.85f),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    color = com.notifiy.itv.ui.theme.Blue,
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
 
@@ -129,8 +153,9 @@ fun ImmersiveList(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 35.dp, bottom = 8.dp)
             )
-            
-            focusedItem?.let { item ->
+
+            val displayItem = liveAsset ?: items.firstOrNull()
+            displayItem?.let { item ->
                 Text(
                     text = item.title.rendered,
                     style = MaterialTheme.typography.titleMedium,
@@ -165,7 +190,7 @@ fun ImmersiveList(
                                 focusedItem = post
                             }
                         },
-                        width = 150.dp, 
+                        width = 150.dp,
                         aspectRatio = 16f / 9f
                     )
                 }
@@ -174,122 +199,132 @@ fun ImmersiveList(
     }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
-private fun BackgroundVideoPlayer(videoUrl: String) {
+fun BackgroundVideoPlayer(
+    videoUrl: String,
+    volume: Float = 0f,
+    onVideoReady: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
-    val isYouTube = videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")
-    val isWebPlayer = videoUrl.contains(".php") || videoUrl.contains("webvideocore")
-    
-    val videoId = if (isYouTube) {
-        val trimmedUrl = videoUrl.trim()
-        Regex("(?:v=|/embed/|youtu\\.be/|/v/)([^#&? ]+)").find(trimmedUrl)?.groupValues?.get(1)
-    } else null
 
-    if (videoId != null) {
-        Log.d("ImmersiveList", "Playing YouTube video ID: $videoId from URL: $videoUrl")
+    var resolvedUrl by remember { mutableStateOf("") }
+    var isResolving by remember { mutableStateOf(true) }
+
+    LaunchedEffect(videoUrl) {
+        onVideoReady(false)
+        isResolving = true
+        resolvedUrl = ""
+
+        val result: String = when {
+            // SVP playback API — resolve to direct HLS/DASH stream
+            videoUrl.contains("/media-assets/playback/") -> {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val client = okhttp3.OkHttpClient.Builder()
+                            .followRedirects(true).followSslRedirects(true).build()
+                        val request = okhttp3.Request.Builder()
+                            .url("$videoUrl?format=json").build()
+                        client.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                val body = response.body?.string() ?: return@withContext ""
+                                val mapType = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+                                val map: Map<String, Any> = com.google.gson.Gson().fromJson(body, mapType)
+                                map["url"] as? String ?: ""
+                            } else ""
+                        }
+                    } catch (e: Exception) {
+                        Log.e("BackgroundVideoPlayer", "SVP API error: ${e.message}")
+                        ""
+                    }
+                }
+            }
+            // popplayer.php — extract clipId from ?it= and resolve via SVP API
+            videoUrl.contains("popplayer.php") -> {
+                val clipId = android.net.Uri.parse(videoUrl).getQueryParameter("it")
+                if (!clipId.isNullOrEmpty()) {
+                    val playbackUrl = "https://api.interplanetary.tv/api/media-assets/playback/$clipId"
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val client = okhttp3.OkHttpClient.Builder()
+                                .followRedirects(true).followSslRedirects(true).build()
+                            val request = okhttp3.Request.Builder()
+                                .url("$playbackUrl?format=json").build()
+                            client.newCall(request).execute().use { response ->
+                                if (response.isSuccessful) {
+                                    val body = response.body?.string() ?: return@withContext ""
+                                    val mapType = object : com.google.gson.reflect.TypeToken<Map<String, Any>>() {}.type
+                                    val map: Map<String, Any> = com.google.gson.Gson().fromJson(body, mapType)
+                                    map["url"] as? String ?: ""
+                                } else ""
+                            }
+                        } catch (e: Exception) {
+                            Log.e("BackgroundVideoPlayer", "popplayer resolve error: ${e.message}")
+                            ""
+                        }
+                    }
+                } else ""
+            }
+            // Direct stream URL (HLS, DASH, YouTube) — use as-is
+            else -> videoUrl
+        }
+
+        // Both state writes happen on the main thread after withContext returns
+        resolvedUrl = result
+        isResolving = false
     }
 
+    if (isResolving) return
+
+    val finalUrl = resolvedUrl
+    val isYouTube = finalUrl.contains("youtube.com") || finalUrl.contains("youtu.be")
+
+    val videoId = if (isYouTube) {
+        val trimmedUrl = finalUrl.trim()
+        Regex("(?:v=|/embed/|youtu\\.be/|/v/)([^#& ]+)").find(trimmedUrl)?.groupValues?.get(1)
+    } else null
+
     if (isYouTube && videoId != null) {
+        // ── YouTube background player ─────────────────────────────────────────
+        // YouTubePlayerView manages its own lifecycle via LifecycleObserver.
+        // We must remove the observer on dispose to prevent memory leaks.
+        DisposableEffect(lifecycleOwner) {
+            onDispose {
+                // Observer removal is handled by YouTubePlayerView itself when
+                // release() is called — but we keep this block to ensure the
+                // composable lifecycle is properly tracked.
+            }
+        }
+
         AndroidView(
             factory = { ctx ->
                 YouTubePlayerView(ctx).apply {
                     enableAutomaticInitialization = false
                     lifecycleOwner.lifecycle.addObserver(this)
-                    
+
                     val listener = object : AbstractYouTubePlayerListener() {
                         override fun onReady(youTubePlayer: YouTubePlayer) {
                             youTubePlayer.loadVideo(videoId, 0f)
-                            youTubePlayer.unMute() 
-                            youTubePlayer.setVolume(100)
+                            if (volume == 0f) youTubePlayer.mute() else youTubePlayer.unMute()
+                            onVideoReady(true)
                         }
                     }
                     val options = IFramePlayerOptions.Builder()
-                        .controls(0) // Hide controls
+                        .controls(0)
                         .rel(0)
-                        .origin("https://interplanetary.tv") // Match PlayerScreen
-                        .ivLoadPolicy(3) // Hide video annotations
-                        .ccLoadPolicy(0) // Hide captions
+                        .origin("https://interplanetary.tv")
+                        .ivLoadPolicy(3)
+                        .ccLoadPolicy(0)
                         .build()
                     initialize(listener, options)
                 }
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(1.35f)
-                .clipToBounds()
-        )
-    } else if (isWebPlayer) {
-        // Use WebView for web-based players (like .php URLs)
-        AndroidView(
-            factory = { ctx ->
-                android.webkit.WebView(ctx).apply {
-                    val webView = this
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    
-                    // Enable third party cookies, often needed for embedded players
-                    android.webkit.CookieManager.getInstance().apply {
-                        setAcceptCookie(true)
-                        setAcceptThirdPartyCookies(webView, true)
-                    }
-
-                    settings.apply {
-                        javaScriptEnabled = true
-                        mediaPlaybackRequiresUserGesture = false
-                        domStorageEnabled = true
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
-                        databaseEnabled = true
-                        allowContentAccess = true
-                        allowFileAccess = true
-                        
-                        // Desktop agent usually forces a more robust player
-                        userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-                        
-                        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                    }
-                    
-                    webChromeClient = object : android.webkit.WebChromeClient() {
-                        override fun onConsoleMessage(message: android.webkit.ConsoleMessage?): Boolean {
-                            val msg = message?.message() ?: ""
-                            if (msg.contains("Error", ignoreCase = true)) {
-                                Log.e("WebViewPlayer", "JS Error: $msg at ${message?.sourceId()}:${message?.lineNumber()}")
-                            } else {
-                                Log.d("WebViewPlayer", "JS Console: $msg")
-                            }
-                            return true
-                        }
-                    }
-                    
-                    webViewClient = object : android.webkit.WebViewClient() {
-                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                            Log.d("WebViewPlayer", "Page finished: $url - Injected Play Commands via Wrapper")
-                        }
-
-                        override fun onReceivedSslError(view: android.webkit.WebView?, handler: android.webkit.SslErrorHandler?, error: android.net.http.SslError?) {
-                            handler?.proceed()
-                        }
-                    }
-                    
-                    val embedHtml = """
-                        <html>
-                        <body style="margin:0;padding:0;background:black;">
-                            <div style="position: relative; padding-bottom: 56.25%; height: 100vh; width: 100vw; overflow: hidden;">
-                                <iframe src="$videoUrl" 
-                                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
-                                        title="Interplanetary.tv Live" 
-                                        allow="autoplay; fullscreen" 
-                                        allowfullscreen>
-                                </iframe>
-                            </div>
-                        </body>
-                        </html>
-                    """.trimIndent()
-                    
-                    Log.d("WebViewPlayer", "Loading HTML Embed for: $videoUrl")
-                    loadDataWithBaseURL("https://interplanetary.tv", embedHtml, "text/html", "UTF-8", null)
-                }
+            update = { /* no-op: video ID doesn't change without full recomposition */ },
+            onRelease = { ytView ->
+                // Called by AndroidView when the composable leaves composition —
+                // properly releases the YouTubePlayerView and removes lifecycle observer
+                ytView.release()
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -297,34 +332,68 @@ private fun BackgroundVideoPlayer(videoUrl: String) {
                 .clipToBounds()
         )
     } else {
-        // ExoPlayer for direct streams
-        val exoPlayer = remember {
+        // ── Native ExoPlayer background player ───────────────────────────────
+        val exoPlayer = remember(finalUrl) {
             ExoPlayer.Builder(context).build().apply {
-                playWhenReady = true
-                volume = 1f // Play sound
+                this.volume = volume
                 repeatMode = ExoPlayer.REPEAT_MODE_ONE
+                playWhenReady = true
             }
         }
 
-        DisposableEffect(Unit) {
+        // Pause/resume with app lifecycle to avoid background resource usage
+        DisposableEffect(lifecycleOwner, exoPlayer) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
+                    Lifecycle.Event.ON_RESUME -> exoPlayer.play()
+                    else -> {}
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                exoPlayer.stop()
+                exoPlayer.clearMediaItems()
                 exoPlayer.release()
             }
         }
 
-        LaunchedEffect(videoUrl) {
-            val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
-            exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.prepare()
+        val playerListener = remember(exoPlayer) {
+            object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) {
+                        onVideoReady(true)
+                    }
+                }
+            }
+        }
+
+        DisposableEffect(exoPlayer, playerListener) {
+            exoPlayer.addListener(playerListener)
+            onDispose {
+                exoPlayer.removeListener(playerListener)
+            }
+        }
+
+        LaunchedEffect(finalUrl) {
+            if (finalUrl.isNotEmpty()) {
+                exoPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(finalUrl)))
+                exoPlayer.prepare()
+            }
         }
 
         AndroidView(
-            factory = {
-                PlayerView(it).apply {
+            factory = { ctx ->
+                PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 }
+            },
+            onRelease = { playerView ->
+                // Detach player from view before release to avoid "released player" warnings
+                playerView.player = null
             },
             modifier = Modifier.fillMaxSize()
         )

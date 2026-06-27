@@ -26,7 +26,7 @@ class NewsDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val TAG = "siddharthaLogs"
-    private val articleId: Int = savedStateHandle.get<Int>("articleId") ?: 0
+    private val articleId: String = savedStateHandle.get<String>("articleId") ?: ""
 
     private val _uiState = MutableStateFlow(NewsDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -37,8 +37,8 @@ class NewsDetailViewModel @Inject constructor(
     }
 
     fun loadArticle() {
-        if (articleId == 0) {
-            Log.e(TAG, "NewsDetailViewModel: Invalid articleId=0")
+        if (articleId.isEmpty()) {
+            Log.e(TAG, "NewsDetailViewModel: Invalid articleId")
             _uiState.update { it.copy(isLoading = false, error = "Invalid article ID") }
             return
         }

@@ -43,7 +43,7 @@ private const val DETAIL_TAG = "siddharthaLogs"
 fun NewsDetailScreen(
     detailViewModel: NewsDetailViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
     newsViewModel: NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-    onArticleClick: (Int) -> Unit = {},
+    onArticleClick: (String) -> Unit = {},
     onBackClick: () -> Unit = {}
 ) {
     val detailState by detailViewModel.uiState.collectAsState()

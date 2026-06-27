@@ -1,26 +1,29 @@
 package com.notifiy.itv.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -32,8 +35,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.notifiy.itv.R
 import com.notifiy.itv.ui.theme.Blue
-import com.notifiy.itv.ui.theme.TextPrimary
-import com.notifiy.itv.ui.theme.TextSecondary
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -43,10 +44,14 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+    val passwordFocusRequester = remember { FocusRequester() }
+    val loginButtonFocusRequester = remember { FocusRequester() }
 
     val moviePosters = listOf(
         "https://image.tmdb.org/t/p/original/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
@@ -82,9 +87,16 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Background Poster Grid
+    fun doLogin() {
+        if (username.isEmpty() || password.isEmpty()) {
+            android.widget.Toast.makeText(context, "Please fill all fields", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            focusManager.clearFocus()
+            viewModel.login(username, password)
+        }
+    }
 
+    Box(modifier = Modifier.fillMaxSize()) {
         // Background Poster Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
@@ -126,7 +138,7 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(450.dp)
-                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
                 .padding(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -135,7 +147,6 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 32.dp)
             ) {
-                // Use AsyncImage to support GIF logo
                 AsyncImage(
                     model = R.drawable.logo,
                     contentDescription = "Logo",
@@ -151,84 +162,65 @@ fun LoginScreen(
                 )
             }
 
-            // Username Field
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Username or Email Address",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                androidx.compose.foundation.text.BasicTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF262626))
-                        .padding(horizontal = 16.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        color = Color.White,
-                        fontSize = 16.sp
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (username.isEmpty()) {
-                                Text(
-                                    text = "Enter username",
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
+            // Username / Email Field – uses Material3 OutlinedTextField so Android TV
+            // can open the system on-screen keyboard (TV IME) on focus
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { androidx.compose.material3.Text("Email or Username", color = Color.Gray) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocusRequester.requestFocus() }
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Blue,
+                    focusedBorderColor = Blue,
+                    unfocusedBorderColor = Color(0xFF555555),
+                    focusedLabelColor = Blue,
+                    unfocusedLabelColor = Color.Gray,
+                    focusedContainerColor = Color(0xFF1A1A1A),
+                    unfocusedContainerColor = Color(0xFF1A1A1A)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Password Field
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Password",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                androidx.compose.foundation.text.BasicTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF262626))
-                        .padding(horizontal = 16.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        color = Color.White,
-                        fontSize = 16.sp
-                    ),
-                    cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (password.isEmpty()) {
-                                Text(
-                                    text = "Enter password",
-                                    color = Color.Gray,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-            }
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { androidx.compose.material3.Text("Password", color = Color.Gray) },
+                singleLine = true,
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { doLogin() }
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Blue,
+                    focusedBorderColor = Blue,
+                    unfocusedBorderColor = Color(0xFF555555),
+                    focusedLabelColor = Blue,
+                    unfocusedLabelColor = Color.Gray,
+                    focusedContainerColor = Color(0xFF1A1A1A),
+                    unfocusedContainerColor = Color(0xFF1A1A1A)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(passwordFocusRequester)
+            )
 
             // Forgot Password
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
@@ -240,39 +232,38 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Login Button
-            Button(
-                onClick = { 
-                    if (username.isEmpty() || password.isEmpty()) {
-                        android.widget.Toast.makeText(context, "Please fill all fields", android.widget.Toast.LENGTH_SHORT).show()
-                    } else {
-                        viewModel.login(username, password) 
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.colors(
-                    containerColor = Blue,
+            // Login Button – TV Surface so D-pad / OK key works
+            Surface(
+                onClick = { doLogin() },
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = if (uiState is LoginUiState.Loading) Color(0xFF334477) else Blue,
+                    focusedContainerColor = if (uiState is LoginUiState.Loading) Color(0xFF334477) else Color(0xFF0044BB),
                     contentColor = Color.White,
-                    focusedContainerColor = Color(0xFF0044BB),
                     focusedContentColor = Color.White
                 ),
-                shape = ButtonDefaults.shape(RoundedCornerShape(4.dp)),
-                enabled = uiState !is LoginUiState.Loading
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .focusRequester(loginButtonFocusRequester),
             ) {
-                if (uiState is LoginUiState.Loading) {
-                    Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                } else {
-                    Text(
-                        text = "Login",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (uiState is LoginUiState.Loading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Login",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 

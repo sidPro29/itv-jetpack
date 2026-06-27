@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.coil.gif)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.exoplayer.dash)       // DASH support (content type 2)
+    implementation(libs.androidx.media3.exoplayer.hls)        // HLS support  (content type 3)
+    implementation(libs.androidx.media3.datasource.okhttp)    // OkHttp-backed data source
     implementation(libs.hilt.android)
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     kapt(libs.hilt.compiler)

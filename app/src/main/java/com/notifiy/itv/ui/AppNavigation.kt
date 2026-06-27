@@ -163,7 +163,7 @@ fun AppNavigation(
                 }
                 composable(
                     route = "NewsDetail/{articleId}",
-                    arguments = listOf(navArgument("articleId") { type = NavType.IntType })
+                    arguments = listOf(navArgument("articleId") { type = NavType.StringType })
                 ) {
                     val detailViewModel: com.notifiy.itv.ui.viewmodel.NewsDetailViewModel = androidx.hilt.navigation.compose.hiltViewModel()
                     val newsViewModel: com.notifiy.itv.ui.viewmodel.NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
@@ -347,9 +347,10 @@ fun AppNavigation(
                         description = description,
                         imageUrl = imageUrl,
                         isVideoAvailable = videoUrl.isNotEmpty(),
-                        onPlayClick = { 
-                            val encodedVideoUrl = URLEncoder.encode(videoUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20")
-                            navController.navigate("Player?videoUrl=$encodedVideoUrl") 
+                        onPlayClick = { resolvedUrl ->
+                            // Use the SVP-resolved URL passed directly from DetailsScreen
+                            val encodedVideoUrl = URLEncoder.encode(resolvedUrl, StandardCharsets.UTF_8.toString()).replace("+", "%20")
+                            navController.navigate("Player?videoUrl=$encodedVideoUrl")
                         },
                         onSubscribeClick = {
                             navController.navigate("Plans")

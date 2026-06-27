@@ -1,14 +1,11 @@
 package com.notifiy.itv.data.repository
 
 import android.util.Log
-import com.google.firebase.firestore.FirebaseFirestore
 import com.notifiy.itv.BuildConfig
 import com.notifiy.itv.data.model.ItvPlan
 import com.notifiy.itv.data.model.ItvPurchase
-import com.notifiy.itv.data.model.MembershipLevel
 import com.notifiy.itv.data.model.PaymentIntentResponse
 import com.notifiy.itv.data.remote.ApiService
-import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -17,84 +14,29 @@ import javax.inject.Singleton
 @Singleton
 class StripeRepository @Inject constructor(
     private val sessionManager: SessionManager,
-    private val apiService: ApiService,
-    private val firestore: FirebaseFirestore
+    private val apiService: ApiService
 ) {
     private val TAG = "siddharthaLogs"
-    private val STRIPE_PUBLISHABLE_KEY = BuildConfig.STRIPE_PUBLISHABLE_KEY
     private val STRIPE_SECRET_KEY = BuildConfig.STRIPE_SECRET_KEY
 
     suspend fun getMembershipLevels(): List<ItvPlan> {
-        val userToken = sessionManager.fetchWpToken()
-        
-        val token = if (!userToken.isNullOrEmpty()) {
-            userToken
-        } else {
-            // If not logged in, try to get an admin token to fetch the list of plans
-            try {
-                val adminLoginRes = apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
-                adminLoginRes.token
-            } catch (e: Exception) {
-                Log.e(TAG, "Admin login for plans failed: ${e.message}")
-                null
-            }
-        }
-
-        if (token.isNullOrEmpty()) {
-            Log.w(TAG, "No token available (user or admin). Falling back to default plans.")
-            return getDefaultPlans()
-        }
-
-        val authHeader = "Bearer $token"
-        
         return try {
-            val response = apiService.getMembershipLevels(authHeader)
-            if (response.isSuccessful) {
-                val levelsMap = response.body() ?: emptyMap()
-                levelsMap.values.map { level ->
-                    val price = (level.billing_amount ?: level.initial_payment ?: "0").toDoubleOrNull() ?: 0.0
-                    val name = level.name ?: "Unknown Plan"
-                    val cyclePeriod = level.cycle_period?.lowercase() ?: ""
-                    
-                    val isYearly = cyclePeriod.contains("year") || 
-                                 cyclePeriod.contains("annual") || 
-                                 name.lowercase().contains("year") || 
-                                 name.lowercase().contains("annual")
-                    
-                    val billingCycle = if (isYearly) "Yearly" else "Monthly"
-                    
-                    ItvPlan(
-                        id = level.id ?: "",
-                        name = name,
-                        price = price,
-                        currency = "EUR",
-                        billingCycle = billingCycle,
-                        category = level.name ?: "Membership",
-                        description = level.description ?: ""
-                    )
-                }
-            } else {
-                Log.e(TAG, "Failed to fetch membership levels: ${response.code()}")
-                getDefaultPlans()
-            }
+            Log.d(TAG, "Fetching membership levels from backend...")
+            apiService.getMembershipLevels()
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching membership levels: ${e.message}")
+            Log.e(TAG, "Error fetching plans from backend: ${e.message}")
             getDefaultPlans()
         }
     }
 
     private fun getDefaultPlans() = listOf(
-        // Basic SD
         ItvPlan("8270", "Basic SD All Access AVOD", 1.99, "EUR", "Monthly", "Basic SD", "SD quality, with ads"),
         ItvPlan("8271", "Basic SD All Access AVOD Yearly", 19.99, "EUR", "Yearly", "Basic SD", "SD quality, with ads (Yearly)"),
-        // Standard
         ItvPlan("8272", "Standard HD Monthly", 4.99, "EUR", "Monthly", "Standard HD", "High Definition"),
         ItvPlan("8273", "Standard HD Yearly", 49.99, "EUR", "Yearly", "Standard HD", "High Definition (Yearly)"),
-        // Premium
         ItvPlan("8274", "Premium UHD Monthly", 7.99, "EUR", "Monthly", "Premium UHD", "Ultra High Definition"),
         ItvPlan("8275", "Premium UHD Yearly", 79.99, "EUR", "Yearly", "Premium UHD", "Ultra High Definition (Yearly)")
     )
-
 
     suspend fun createPaymentIntent(plan: ItvPlan): Result<PaymentIntentResponse> {
         return try {
@@ -112,93 +54,33 @@ class StripeRepository @Inject constructor(
     }
 
     suspend fun confirmPurchase(plan: ItvPlan, paymentIntentId: String): Result<Boolean> {
-        val wpToken = sessionManager.fetchWpToken() ?: return Result.failure(Exception("WordPress Token not found."))
-        val wpUserId = sessionManager.fetchWpUserId()
-        
-        if (wpUserId == -1L) {
-             return Result.failure(Exception("WordPress User ID not found. Please log in again."))
-        }
-
-        try {
-            val calendar = Calendar.getInstance()
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            val purchaseDate = dateFormat.format(calendar.time)
+        return try {
+            val params = mapOf(
+                "planId" to plan.id,
+                "paymentIntentId" to paymentIntentId
+            )
+            val response = apiService.confirmPurchase(params)
             
-            // Calculate expiry (1 month or 1 year)
-            if (plan.billingCycle == "Yearly") {
-                calendar.add(Calendar.YEAR, 1)
+            if (response.isSuccessful) {
+                Log.d(TAG, "Node.js Backend purchase registered successfully.")
+                sessionManager.updateActivePlan(plan.name)
+                Result.success(true)
             } else {
-                calendar.add(Calendar.MONTH, 1)
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "Failed to register purchase on backend: $errorBody")
+                Result.failure(Exception("Failed to register purchase: ${response.code()}"))
             }
-            val expiryDate = dateFormat.format(calendar.time)
-
-            // 1. Log in as Administrator to perform the upgrade API call
-            val adminLoginRes = try {
-                apiService.login(com.notifiy.itv.data.model.LoginRequest("siddhartha.verma", "sidSat@6213#"))
-            } catch (e: Exception) { 
-                Log.e(TAG, "Admin login failed: ${e.message}")
-                null 
-            }
-            
-            val adminToken = adminLoginRes?.token
-            if (adminToken != null) {
-                val adminAuthHeader = "Bearer $adminToken"
-                val wpResponse = apiService.changeMembershipLevel(adminAuthHeader, plan.id, wpUserId)
-                
-                if (wpResponse.isSuccessful) {
-                    Log.d(TAG, "WP membership updated successfully using admin token.")
-                    
-                    // 2. Save to Firestore (itv_purchase collection)
-                    val purchase = ItvPurchase(
-                        purchase_id = UUID.randomUUID().toString(),
-                        user_id = wpUserId.toString(),
-                        plan_name = plan.name,
-                        amount = plan.price,
-                        currency = plan.currency,
-                        purchase_date = purchaseDate,
-                        expiry_date = expiryDate,
-                        status = "Success",
-                        stripe_payment_id = paymentIntentId
-                    )
-                    
-                    firestore.collection("itv_purchase")
-                        .document(purchase.purchase_id)
-                        .set(purchase)
-                        .await()
-                    
-                    // 3. Update local session
-                    sessionManager.updateActivePlan(plan.name)
-                    
-                    return Result.success(true)
-                } else {
-                    val errorBody = wpResponse.errorBody()?.string()
-                    Log.e(TAG, "Failed to update membership with admin access: $errorBody")
-                    return Result.failure(Exception("Failed to update membership (Admin Mode): ${wpResponse.code()} - $errorBody"))
-                }
-            } else {
-                return Result.failure(Exception("Server Auth Error: Admin login failed. Check credentials."))
-            }
-
-
         } catch (e: Exception) {
             Log.e(TAG, "confirmPurchase Error: ${e.message}")
-            return Result.failure(e)
+            Result.failure(e)
         }
     }
 
     suspend fun getUserPurchases(): List<ItvPurchase> {
-        val wpUserId = sessionManager.fetchWpUserId()
-        if (wpUserId == -1L) return emptyList()
-
         return try {
-            val snapshot = firestore.collection("itv_purchase")
-                .whereEqualTo("user_id", wpUserId.toString())
-                .get()
-                .await()
-            
-            snapshot.toObjects(ItvPurchase::class.java)
+            apiService.getUserPurchases()
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching purchases: ${e.message}")
+            Log.e(TAG, "Error fetching purchases from backend: ${e.message}")
             emptyList()
         }
     }
@@ -206,7 +88,6 @@ class StripeRepository @Inject constructor(
     suspend fun hasActivePlan(planName: String): Boolean {
         val purchases = getUserPurchases()
         val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        
         return purchases.any { it.plan_name == planName && it.expiry_date > now }
     }
 }

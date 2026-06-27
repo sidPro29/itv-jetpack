@@ -48,8 +48,12 @@ class NewsViewModel @Inject constructor(
             newsRepository.getNewsArticles(page = page, perPage = 20)
                 .onSuccess { articles ->
                     Log.d(TAG, "NewsViewModel: Got ${articles.size} articles on page $page")
+                    // Sort by date published, most recent first
+                    val sortedArticles = articles.sortedByDescending { 
+                        it.date ?: it.createdAtStr ?: "" 
+                    }
                     _uiState.update { state ->
-                        val list = if (page == 1) articles else state.articles + articles
+                        val list = if (page == 1) sortedArticles else state.articles + sortedArticles
                         state.copy(
                             isLoading = false,
                             articles = list,

@@ -1,7 +1,17 @@
 package com.notifiy.itv.data.model
 
 import com.google.gson.annotations.SerializedName
-import com.notifiy.itv.data.util.VideoUrlManager
+
+data class MediaVideos(
+    @SerializedName("clipId") val clipId: String? = null,
+    @SerializedName("ytUrl") val ytUrl: String? = null,
+    @SerializedName("svpRefNo") val svpRefNo: String? = null
+)
+
+data class MembershipPlan(
+    @SerializedName("planId") val planId: String? = null,
+    @SerializedName("planName") val planName: String? = null
+)
 
 data class AssetResponse(
     val page: Int,
@@ -14,29 +24,91 @@ data class AssetResponse(
 )
 
 data class Post(
-    @SerializedName("asset_id")
-    val id: Int,
-    val category: String, // video, movie, tvshow
-    @SerializedName("imageUrl")
-    val imageUrl: String?,
-    @SerializedName("videoUrl")
-    val videoUrl: String?,
+    @SerializedName("_id")
+    val mongoId: String? = null,
+    @SerializedName("wp_asset_id")
+    private val _id: Int? = null,
+    @SerializedName("type")
+    val type: String, // "video", "movie", "tvshow", "movies", "tvshows"
+    @SerializedName("images")
+    val images: List<String>? = null,
     @SerializedName("title")
     private val _title: String?,
     val description: String?,
-    val tag: String?,
-    val genre: String?,
+    @SerializedName("genres")
+    val genresList: List<String>? = null,
+    @SerializedName("tags")
+    val tagsList: List<String>? = null,
+    @SerializedName("videos")
+    val videos: Map<String, Any>? = null,
+    @SerializedName("trailer")
+    val trailer: Map<String, Any>? = null,
     @SerializedName("membership_level")
-    private val _membershipLevel: String? // comma separated string like "20354, 20353"
+    val membershipPlanList: List<MembershipPlan>? = null
 ) {
+    val id: Int get() = _id ?: mongoId?.hashCode() ?: 0
     val title: RenderedContent get() = RenderedContent(_title ?: "")
-    
-    // UI backward compatibility
-    val portraitPoster: String get() = imageUrl ?: ""
-    val membershipLevel: List<String> get() = _membershipLevel?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 
-    fun getDisplayImageUrl(): String = imageUrl ?: ""
-    fun getEffectiveVideoUrl(): String = VideoUrlManager.fixVideoUrl(videoUrl ?: "")
+    val category: String get() = when (type.lowercase()) {
+        "movies" -> "movie"
+        "tvshows" -> "tvshow"
+        else -> type
+    }
+
+    val tag: String? get() = tagsList?.joinToString(", ")
+    val genre: String? get() = genresList?.joinToString(", ")
+
+    val imageUrl: String? get() = images?.firstOrNull() ?: ""
+    val portraitPoster: String get() = imageUrl ?: ""
+
+    val membershipLevel: List<String> get() = membershipPlanList?.mapNotNull { it.planName } ?: emptyList()
+
+    fun getDisplayImageUrl(): String {
+        val rawUrl = imageUrl ?: ""
+        return if (rawUrl.startsWith("/api/")) {
+            "https://api.interplanetary.tv$rawUrl"
+        } else {
+            rawUrl
+        }
+    }
+
+    fun getEffectiveVideoUrl(): String {
+        val v = videos ?: return ""
+        val clipId = v["clipId"] as? String
+        if (!clipId.isNullOrEmpty()) {
+            return "https://api.interplanetary.tv/api/media-assets/playback/$clipId"
+        }
+        val ytUrl = v["ytUrl"] as? String ?: v["youtube"] as? String
+        if (!ytUrl.isNullOrEmpty()) {
+            return ytUrl
+        }
+        for ((key, value) in v) {
+            if (key.startsWith("non-svp") && value is String && value.startsWith("http")) {
+                return value
+            }
+        }
+        return ""
+    }
+
+    fun getEffectiveTrailerUrl(): String {
+        val t = trailer ?: return ""
+        val clipId = t["clipId"] as? String
+        if (!clipId.isNullOrEmpty()) {
+            return "https://api.interplanetary.tv/api/media-assets/playback/$clipId"
+        }
+        val ytUrl = t["ytUrl"] as? String ?: t["youtube"] as? String
+        if (!ytUrl.isNullOrEmpty()) {
+            return ytUrl
+        }
+        for ((key, value) in t) {
+            if (key.startsWith("non-svp") && value is String && value.startsWith("http")) {
+                return value
+            }
+        }
+        return ""
+    }
 }
 
+
 data class RenderedContent(val rendered: String)
+

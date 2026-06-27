@@ -3,124 +3,59 @@ package com.notifiy.itv.data.model
 import com.google.gson.annotations.SerializedName
 
 data class NewsArticle(
-    val id: Int,
-    val date: String,
-    val link: String,
-    val title: RenderedContent,
-    val excerpt: RenderedContent,
-    val content: RenderedContent? = null,
-    @SerializedName("featured_media")
-    val featuredMediaId: Int,
-    @SerializedName("_embedded")
-    val embedded: NewsEmbedded? = null
+    @SerializedName("_id")
+    val id: String,
+    @SerializedName("publishedDate")
+    val date: String?,
+    @SerializedName("createdAt")
+    val createdAtStr: String?,
+    @SerializedName("title")
+    private val titleStr: String?,
+    @SerializedName("description")
+    private val descriptionStr: String?,
+    @SerializedName("imageUrl")
+    val imageUrl: String? = null,
+    @SerializedName("images")
+    val imagesList: List<String>? = null,
+    @SerializedName("keywords")
+    val keywordsList: List<String>? = null,
+    @SerializedName("author")
+    val author: String? = null
 ) {
-    fun getThumbnailUrl(): String {
-        return embedded?.featuredMedia
-            ?.firstOrNull()
-            ?.getImageUrl()
-            ?: ""
-    }
+    val link: String get() = ""
+    val title: RenderedContent get() = RenderedContent(titleStr ?: "")
+    val excerpt: RenderedContent get() = RenderedContent(descriptionStr ?: "")
+    val content: RenderedContent get() = RenderedContent(descriptionStr ?: "")
+    val featuredMediaId: Int get() = 0
 
-    /** Decode all HTML entities + strip tags using Android's Html parser */
-    private fun decodeHtml(html: String): String {
-        return try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
-            } else {
-                @Suppress("DEPRECATION")
-                android.text.Html.fromHtml(html).toString()
-            }
-        } catch (e: Exception) {
-            html.replace(Regex("<[^>]*>"), "")
+    fun getThumbnailUrl(): String {
+        val rawUrl = imageUrl ?: imagesList?.firstOrNull() ?: ""
+        return if (rawUrl.startsWith("/api/")) {
+            "https://api.interplanetary.tv$rawUrl"
+        } else {
+            rawUrl
         }
     }
 
-    /** Clean title — decodes &#8217; &#8220; &#8221; &amp; etc. */
-    fun getCleanTitle(): String = decodeHtml(title.rendered).trim()
+    fun getCleanTitle(): String = titleStr ?: ""
 
-    /** Strip HTML tags, decode entities, remove membership wall text */
-    private fun stripHtml(html: String): String {
-        return decodeHtml(html)
-            .replace(Regex("Membership Required.*", RegexOption.DOT_MATCHES_ALL), "")
-            .replace(Regex("You must be a member.*", RegexOption.DOT_MATCHES_ALL), "")
-            .replace(Regex("\\s{2,}"), " ")
-            .trim()
-    }
+    fun getCleanExcerpt(): String = descriptionStr ?: ""
 
-    fun getCleanExcerpt(): String = stripHtml(excerpt.rendered)
-
-    fun getCleanContent(): String = content?.let { stripHtml(it.rendered) } ?: getCleanExcerpt()
-
+    fun getCleanContent(): String = descriptionStr ?: ""
 
     fun getFormattedDate(): String {
+        val dateVal = date ?: createdAtStr ?: ""
         return try {
             val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
             val outputFormat = java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault())
-            val d = inputFormat.parse(date)
-            if (d != null) outputFormat.format(d) else date
+            val d = inputFormat.parse(dateVal)
+            if (d != null) outputFormat.format(d) else dateVal
         } catch (e: Exception) {
-            date
+            dateVal
         }
     }
 
-    fun getTags(): List<String> {
-        return embedded?.terms
-            ?.flatten()
-            ?.filter { it.taxonomy == "post_tag" }
-            ?.map { it.name }
-            ?: emptyList()
-    }
+    fun getTags(): List<String> = keywordsList ?: emptyList()
 
-    fun getAuthorName(): String {
-        return embedded?.author?.firstOrNull()?.name ?: "Interplanetary Team"
-    }
+    fun getAuthorName(): String = author ?: "Interplanetary Team"
 }
-
-data class NewsEmbedded(
-    @SerializedName("author")
-    val author: List<WpAuthor>?,
-    @SerializedName("wp:featuredmedia")
-    val featuredMedia: List<FeaturedMedia>?,
-    @SerializedName("wp:term")
-    val terms: List<List<WpTerm>>?
-)
-
-data class WpAuthor(
-    val id: Int,
-    val name: String
-)
-
-data class WpTerm(
-    val id: Int,
-    val name: String,
-    val slug: String,
-    val taxonomy: String  // "category" or "post_tag"
-)
-
-data class FeaturedMedia(
-    val id: Int,
-    @SerializedName("source_url")
-    val sourceUrl: String?,
-    @SerializedName("media_details")
-    val mediaDetails: MediaDetails?
-) {
-    fun getImageUrl(): String {
-        return mediaDetails?.sizes?.mediumLarge?.sourceUrl
-            ?: mediaDetails?.sizes?.large?.sourceUrl
-            ?: mediaDetails?.sizes?.medium?.sourceUrl
-            ?: sourceUrl
-            ?: ""
-    }
-}
-
-data class MediaDetails(val sizes: MediaSizes?)
-
-data class MediaSizes(
-    @SerializedName("medium") val medium: MediaSize?,
-    @SerializedName("large") val large: MediaSize?,
-    @SerializedName("medium_large") val mediumLarge: MediaSize?
-)
-
-data class MediaSize(
-    @SerializedName("source_url") val sourceUrl: String?
-)

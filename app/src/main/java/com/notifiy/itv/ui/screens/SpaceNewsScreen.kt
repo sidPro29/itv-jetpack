@@ -35,7 +35,7 @@ private const val TAG = "siddharthaLogs"
 @Composable
 fun SpaceNewsScreen(
     viewModel: NewsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-    onArticleClick: (Int) -> Unit = {}
+    onArticleClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()

@@ -48,17 +48,32 @@ class PlansViewModel @Inject constructor(
             selectedBillingCycle = if (it.selectedBillingCycle == "Monthly") "Yearly" else "Monthly"
         ) }
     }
+
     fun purchasePlan(plan: ItvPlan) {
         viewModelScope.launch {
             _uiState.update { it.copy(isPaymentProcessing = true, error = null, selectedPlan = plan) }
             
-            // Checks for already active plan (both WP and Firestore)
             val currentWpPlan = sessionManager.fetchActivePlan()
-            val isAlreadyActiveInFirestore = stripeRepository.hasActivePlan(plan.name)
             
-            if (currentWpPlan == plan.name || isAlreadyActiveInFirestore) {
-                _uiState.update { it.copy(isPaymentProcessing = false, error = "You already have this plan, choose other") }
-                return@launch
+            if (currentWpPlan != null && currentWpPlan.isNotEmpty()) {
+                if (currentWpPlan == plan.name) {
+                    _uiState.update { it.copy(isPaymentProcessing = false, error = "This plan is already active on your account.") }
+                    return@launch
+                }
+                
+                val activePlanDetails = _uiState.value.availablePlans.find { it.name == currentWpPlan }
+                if (activePlanDetails != null) {
+                    val activeRate = if (activePlanDetails.billingCycle.equals("Yearly", ignoreCase = true)) activePlanDetails.price / 12.0 else activePlanDetails.price
+                    val targetRate = if (plan.billingCycle.equals("Yearly", ignoreCase = true)) plan.price / 12.0 else plan.price
+                    
+                    if (targetRate < activeRate) {
+                        _uiState.update { it.copy(
+                            isPaymentProcessing = false, 
+                            error = "You cannot downgrade to a plan with a lower price than your current active plan (${activePlanDetails.name})."
+                        ) }
+                        return@launch
+                    }
+                }
             }
 
             val result = stripeRepository.createPaymentIntent(plan)
@@ -90,4 +105,3 @@ class PlansViewModel @Inject constructor(
         _uiState.update { it.copy(paymentSuccess = false, error = null) }
     }
 }
-

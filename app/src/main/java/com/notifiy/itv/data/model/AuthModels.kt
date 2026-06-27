@@ -3,21 +3,31 @@ package com.notifiy.itv.data.model
 import com.google.gson.annotations.SerializedName
 
 data class LoginRequest(
+    @SerializedName("email")
+    val email: String,
+    val password: String,
+    val skip2FA: Boolean = true
+)
+
+data class LoginUser(
+    val id: String,
     val username: String,
-    val password: String
+    val email: String,
+    val role: String,
+    @SerializedName("activePlans")
+    val activePlans: List<UserActivePlan>? = null
 )
 
 data class LoginResponse(
     val token: String?,
-    @SerializedName("user_email")
-    val userEmail: String?,
-    @SerializedName("user_nicename")
-    val userNiceName: String?,
-    @SerializedName("user_display_name")
-    val userDisplayName: String?,
-    val message: String?,
-    val code: String?
-)
+    val user: LoginUser?,
+    val message: String? = null,
+    val code: String? = null
+) {
+    val userEmail: String? get() = user?.email
+    val userNiceName: String? get() = user?.username
+    val userDisplayName: String? get() = user?.username
+}
 
 data class WpSignupRequest(
     val username: String,
@@ -27,9 +37,22 @@ data class WpSignupRequest(
 )
 
 data class WpUserResponse(
-    val id: Long,
-    val username: String,
-    val name: String
+    @SerializedName("_id")
+    val idString: String,
+    val username: String?,
+    val email: String?,
+    val mobile: String?,
+    val role: String?,
+    @SerializedName("activePlans")
+    val activePlans: List<UserActivePlan>? = null
+) {
+    val id: Long get() = idString.hashCode().toLong()
+}
+
+data class UserActivePlan(
+    val planName: String? = null,
+    val planId: String? = null,
+    val expiryDate: String? = null
 )
 
 data class WpMembershipResponse(
@@ -59,12 +82,12 @@ data class ItvUser(
 )
 
 data class ItvPlan(
-    val id: String,
-    val name: String,
-    val price: Double,
+    @SerializedName("_id") val id: String = "",
+    val name: String = "",
+    @SerializedName("amount") val price: Double = 0.0,
     val currency: String = "EUR",
-    val billingCycle: String, // "Monthly" or "Yearly"
-    val category: String, // "Basic SD", "Standard HD", "Premium HD", "Premium+ 4K", "Blogger Ads", etc.
+    val billingCycle: String = "Monthly", // "Monthly" or "Yearly"
+    @SerializedName("type") val category: String = "regular", // The backend uses 'type' instead of 'category'
     val description: String = "",
     val benefits: List<String> = emptyList()
 )
@@ -81,7 +104,6 @@ data class ItvPurchase(
     val benefits: List<String> = emptyList(),
     val stripe_payment_id: String = ""
 )
-
 
 data class PaymentIntentRequest(
     val amount: Long,

@@ -13,13 +13,10 @@ class NewsRepository @Inject constructor(
     private val TAG = "siddharthaLogs"
 
     suspend fun getNewsArticles(page: Int = 1, perPage: Int = 20): Result<List<NewsArticle>> {
-        Log.d(TAG, "NewsRepository: Fetching articles — page=$page, perPage=$perPage")
+        Log.d(TAG, "NewsRepository: Fetching articles from Node.js backend...")
         return try {
-            val articles = apiService.getNewsArticles(categories = 10794, perPage = perPage, page = page)
+            val articles = apiService.getNewsArticles()
             Log.d(TAG, "NewsRepository: Fetched ${articles.size} articles")
-            articles.forEachIndexed { i, a ->
-                Log.d(TAG, "NewsRepository: [$i] id=${a.id} title='${a.title.rendered}' thumb='${a.getThumbnailUrl()}'")
-            }
             Result.success(articles)
         } catch (e: Exception) {
             Log.e(TAG, "NewsRepository: Error fetching articles: ${e.message}", e)
@@ -30,7 +27,7 @@ class NewsRepository @Inject constructor(
     suspend fun searchNewsArticles(query: String): Result<List<NewsArticle>> {
         Log.d(TAG, "NewsRepository: Searching articles — query='$query'")
         return try {
-            val articles = apiService.searchNewsArticles(query = query, categories = 10794, perPage = 10)
+            val articles = apiService.searchNewsArticles(query = query)
             Log.d(TAG, "NewsRepository: Search returned ${articles.size} results for '$query'")
             Result.success(articles)
         } catch (e: Exception) {
@@ -39,11 +36,11 @@ class NewsRepository @Inject constructor(
         }
     }
 
-    suspend fun getNewsArticleById(id: Int): Result<NewsArticle> {
-        Log.d(TAG, "NewsRepository: Fetching article by id=$id")
+    suspend fun getNewsArticleById(id: String): Result<NewsArticle> {
+        Log.d(TAG, "NewsRepository: Fetching article from backend by id=$id")
         return try {
             val article = apiService.getNewsArticleById(id = id)
-            Log.d(TAG, "NewsRepository: Fetched article '${article.title.rendered}', contentLen=${article.content?.rendered?.length}")
+            Log.d(TAG, "NewsRepository: Fetched article '${article.title.rendered}'")
             Result.success(article)
         } catch (e: Exception) {
             Log.e(TAG, "NewsRepository: Error fetching article id=$id: ${e.message}", e)

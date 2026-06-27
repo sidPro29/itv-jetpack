@@ -6,27 +6,33 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.notifiy.itv.R
 import com.notifiy.itv.ui.theme.Blue
-import com.notifiy.itv.ui.theme.TextPrimary
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -36,11 +42,15 @@ fun SignupScreen(
     viewModel: SignupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+    val emailFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val signupButtonFocusRequester = remember { FocusRequester() }
 
     val moviePosters = listOf(
         "https://image.tmdb.org/t/p/original/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
@@ -75,6 +85,29 @@ fun SignupScreen(
             else -> {}
         }
     }
+
+    fun doSignup() {
+        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            android.widget.Toast.makeText(context, "Please fill all fields", android.widget.Toast.LENGTH_SHORT).show()
+        } else if (password.length < 6) {
+            android.widget.Toast.makeText(context, "Password should be at least 6 characters", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            focusManager.clearFocus()
+            viewModel.signup(name, email, password)
+        }
+    }
+
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        cursorColor = Blue,
+        focusedBorderColor = Blue,
+        unfocusedBorderColor = Color(0xFF555555),
+        focusedLabelColor = Blue,
+        unfocusedLabelColor = Color.Gray,
+        focusedContainerColor = Color(0xFF1A1A1A),
+        unfocusedContainerColor = Color(0xFF1A1A1A)
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Background Poster Grid
@@ -118,7 +151,7 @@ fun SignupScreen(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(450.dp)
-                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(8.dp))
                 .padding(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -142,69 +175,89 @@ fun SignupScreen(
                 )
             }
 
-            // Name Field
-            SignupTextField(
-                label = "Full Name",
+            // Full Name
+            OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = "Enter your name"
+                label = { androidx.compose.material3.Text("Full Name", color = Color.Gray) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { emailFocusRequester.requestFocus() }),
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Email Field
-            SignupTextField(
-                label = "Email Address",
+            // Email
+            OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = "Enter your email"
+                label = { androidx.compose.material3.Text("Email Address", color = Color.Gray) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
+                colors = fieldColors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(emailFocusRequester)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Password Field
-            SignupTextField(
-                label = "Password",
+            // Password
+            OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                placeholder = "Enter password",
-                isPassword = true,
-                passwordVisible = passwordVisible
+                label = { androidx.compose.material3.Text("Password", color = Color.Gray) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { doSignup() }),
+                colors = fieldColors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(passwordFocusRequester)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Signup Button
-            Button(
-                onClick = { 
-                    if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                        android.widget.Toast.makeText(context, "Please fill all fields", android.widget.Toast.LENGTH_SHORT).show()
-                    } else if (password.length < 6) {
-                        android.widget.Toast.makeText(context, "Password should be at least 6 characters", android.widget.Toast.LENGTH_SHORT).show()
-                    } else {
-                        viewModel.signup(name, email, password) 
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.colors(
-                    containerColor = Blue,
+            Surface(
+                onClick = { doSignup() },
+                shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
+                colors = ClickableSurfaceDefaults.colors(
+                    containerColor = if (uiState is SignupUiState.Loading) Color(0xFF334477) else Blue,
+                    focusedContainerColor = if (uiState is SignupUiState.Loading) Color(0xFF334477) else Color(0xFF0044BB),
                     contentColor = Color.White,
-                    focusedContainerColor = Color.White,
-                    focusedContentColor = Blue
+                    focusedContentColor = Color.White
                 ),
-                shape = ButtonDefaults.shape(RoundedCornerShape(4.dp)),
-                enabled = uiState !is SignupUiState.Loading
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .focusRequester(signupButtonFocusRequester)
             ) {
-                if (uiState is SignupUiState.Loading) {
-                    Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                } else {
-                    Text(
-                        text = "Create Account",
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (uiState is SignupUiState.Loading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Create Account",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -240,52 +293,3 @@ fun SignupScreen(
         }
     }
 }
-
-@Composable
-fun SignupTextField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    isPassword: Boolean = false,
-    passwordVisible: Boolean = false
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextPrimary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        androidx.compose.foundation.text.BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(45.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF262626))
-                .padding(horizontal = 16.dp),
-            textStyle = androidx.compose.ui.text.TextStyle(
-                color = Color.White,
-                fontSize = 16.sp
-            ),
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(Blue),
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            singleLine = true,
-            decorationBox = { innerTextField ->
-                Box(contentAlignment = Alignment.CenterStart) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text = placeholder,
-                            color = Color.Gray,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    innerTextField()
-                }
-            }
-        )
-    }
-}
-
